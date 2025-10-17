@@ -1,75 +1,44 @@
-import React, { useEffect, useState } from "react";
-import axios from "axios";
+import React, { useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import { Link } from "react-router-dom";
+import { fetchCart, updateCartItem, removeCartItem } from "../slices/cartSlice";
 
 export default function CartPage() {
-  const [cart, setCart] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
-
-  const token = localStorage.getItem("access");
+  const dispatch = useDispatch();
+  const items = useSelector(state => state.cart.items);
+  const loading = useSelector(state => state.cart.loading);
+  const operationLoading = useSelector(state => state.cart.operationLoading);
+  const error = useSelector(state => state.cart.error);
+  const totalPrice = useSelector(state => state.cart.totalPrice);
 
   // Fetch cart data
   useEffect(() => {
-    const fetchCart = async () => {
-      try {
-        const res = await axios.get("http://127.0.0.1:8000/api/cart/", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-    
-        setCart(res.data);
-      } catch (err) {
-        setError(err.response?.data?.detail || "Failed to fetch cart");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchCart();
-  }, [refreshTrigger,token]);
+    dispatch(fetchCart());
+  }, [dispatch]);
 
-  useEffect(()=>{
-
-  },[])
   // Update quantity
   const updateQuantity = async (itemId, newQty) => {
+    if (operationLoading) return; // Prevent multiple operations while loading
     try {
-      await axios.post(
-        `http://127.0.0.1:8000/api/cart/${itemId}/`,
-        { quantity: newQty },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      setRefreshTrigger((prev) => prev + 1);
-      setCart((prev) => ({
-        ...prev,
-        items: prev.items.map((item) =>
-          item.id === itemId ? { ...item, quantity: newQty } : item
-        ),
-      }));
+      await dispatch(updateCartItem({ itemId, newQty })).unwrap();
     } catch (err) {
-      alert("Failed to update quantity: ",err);
+      alert(err.message || "Failed to update quantity");
     }
   };
 
   // Remove item
   const removeItem = async (itemId) => {
+    if (operationLoading) return; // Prevent multiple operations while loading
     try {
-      await axios.delete(`http://127.0.0.1:8000/api/cart/${itemId}/`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setRefreshTrigger((prev) => prev + 1);
-      setCart((prev) => ({
-        ...prev,
-        items: prev.items.filter((item) => item.id !== itemId),
-      }));
-    } catch {
-      alert("Failed to remove item");
+      await dispatch(removeCartItem({ itemId })).unwrap();
+    } catch (err) {
+      alert(err.message || "Failed to remove item");
     }
   };
 
   if (loading) return <p className="text-center py-10 text-gray-500">Loading cart...</p>;
   if (error) return <p className="text-center py-10 text-red-500">{error}</p>;
-  if (!cart || !Array.isArray(cart.items) || cart.items.length === 0)
+  if (!items || items.length === 0)
     return (
       <div className="text-center">
         <p className="text-gray-500 mb-4">Your cart is empty.</p>
@@ -82,17 +51,12 @@ export default function CartPage() {
       </div>
     );
 
-  const totalPrice = cart.items.reduce(
-    (acc, item) => acc + item.product.price * item.quantity,
-    0
-  );
-
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-black text-black dark:text-white px-6 py-10">
       <h2 className="text-3xl font-bold text-center mb-8">🛒 Your Cart</h2>
 
       <div className="max-w-4xl mx-auto bg-white dark:bg-gray-900 shadow-lg rounded-2xl p-6">
-        {cart.items.map((item) => (
+        {items.map((item) => (
           <div
             key={item.id}
             className="flex flex-col sm:flex-row justify-between items-center border-b border-gray-300 dark:border-gray-700 py-4"
@@ -122,14 +86,20 @@ export default function CartPage() {
                     removeItem(item.product.id);
                   }
                 }}
-                className="bg-gray-200 dark:bg-gray-800 px-3 py-1 rounded cursor-pointer"
+                disabled={operationLoading}
+                className={`bg-gray-200 dark:bg-gray-800 px-3 py-1 rounded ${
+                  operationLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+                }`}
               >
                 −
               </button>
               <span>{item.quantity}</span>
               <button
-                onClick={() => updateQuantity(item.product.id,1)}
-                className="bg-gray-200 dark:bg-gray-800 px-3 py-1 rounded cursor-pointer"
+                onClick={() => updateQuantity(item.product.id, 1)}
+                disabled={operationLoading}
+                className={`bg-gray-200 dark:bg-gray-800 px-3 py-1 rounded ${
+                  operationLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+                }`}
               >
                 +
               </button>
@@ -145,9 +115,12 @@ export default function CartPage() {
 
               <button
                 onClick={() => removeItem(item.product.id)}
-                className="text-red-500 text-sm mt-2 hover:underline cursor-pointer"
+                disabled={operationLoading}
+                className={`text-red-500 text-sm mt-2 hover:underline ${
+                  operationLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+                }`}
               >
-                Remove
+                {operationLoading ? 'Removing...' : 'Remove'}
               </button>
             </div>
           </div>

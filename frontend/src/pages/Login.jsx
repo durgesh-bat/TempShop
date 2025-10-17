@@ -1,32 +1,28 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
+import { login } from "../slices/authSlice";
 
 export default function Login() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
   const navigate = useNavigate();
+  const dispatch = useDispatch();
+  const { error, isAuthenticated } = useSelector((state) => state.auth);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate("/");
+    }
+  }, [isAuthenticated, navigate]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    setError("");
-
     try {
-      const res = await fetch("http://127.0.0.1:8000/api/auth/token/", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) throw new Error(data.detail || "Invalid credentials");
-
-      localStorage.setItem("access", data.access);
-      localStorage.setItem("refresh", data.refresh);
-      navigate("/");
+      await dispatch(login({ username, password })).unwrap();
     } catch (err) {
-      setError(err.message);
+      // Error is handled by the slice
+      console.error('Login failed:', err);
     }
   };
 

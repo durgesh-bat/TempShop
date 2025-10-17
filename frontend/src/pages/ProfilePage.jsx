@@ -1,40 +1,35 @@
-import React, { useEffect, useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import React, { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
+import { verifyAuthToken } from "../slices/authSlice";
+import { logout } from "../slices/authSlice";
 
 export default function ProfilePage() {
   const navigate = useNavigate();
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-
+  const dispatch = useDispatch();
+  const { user, loading, error, isAuthenticated } = useSelector((state) => state.auth);
+  console.log("ProfilePage", user);
   useEffect(() => {
-    const token = localStorage.getItem("access");
-    if (!token) {
+    if (!isAuthenticated) {
       navigate("/login");
       return;
     }
 
-    fetch("http://127.0.0.1:8000/api/auth/profile/", {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    })
-      .then(async (res) => {
-        if (res.status === 401) {
-          setError("Session expired. Please log in again.");
+    const fetchProfile = async () => {
+      try {
+        await dispatch(verifyAuthToken()).unwrap();
+      } catch (err) {
+        if (err.message === "No token found" || err.response?.status === 401) {
           navigate("/login");
-          return;
         }
-        const data = await res.json();
-        setUser(data);
-      })
-      .catch(() => setError("Failed to load profile data."))
-      .finally(() => setLoading(false));
-  }, [navigate]);
+      }
+    };
+
+    fetchProfile();
+  }, [dispatch, navigate, isAuthenticated]);
 
   const handleLogout = () => {
-    localStorage.removeItem("access");
-    localStorage.removeItem("refresh");
+    dispatch(logout());
     navigate("/login");
   };
 

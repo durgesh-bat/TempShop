@@ -10,7 +10,6 @@ from .serializers import CartSerializer, CartItemSerializer
 
 class CartView(APIView):
     permission_classes = [IsAuthenticated]
-
     # 🛒 GET: Retrieve user's cart
     def get(self, request):
         try:

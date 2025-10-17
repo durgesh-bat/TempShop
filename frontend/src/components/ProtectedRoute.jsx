@@ -1,47 +1,15 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import { Navigate } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
+import { verifyAuthToken } from "../slices/authSlice";
 
 const ProtectedRoute = ({ children }) => {
-  const [loading, setLoading] = useState(true);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const dispatch = useDispatch();
+  const { isAuthenticated, verifying: loading } = useSelector(state => state.auth);
 
   useEffect(() => {
-    const verifyToken = async () => {
-      const accessToken = localStorage.getItem("access");
-      console.log("Protected: ",accessToken)
-      if (!accessToken) {
-        setIsAuthenticated(false);
-        setLoading(false);
-        return;
-      }
-
-      try {
-        const res = await fetch(
-          "http://127.0.0.1:8000/api/auth/token/verify/",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ token: accessToken }),
-          }
-        );
-        console.log("Response of Verify token: ",res)
-        if (res.ok) {
-          setIsAuthenticated(true);
-        } else {
-          setIsAuthenticated(false);
-        }
-      } catch (err) {
-        console.error(err);
-        setIsAuthenticated(false);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    verifyToken();
-  }, []);
+    dispatch(verifyAuthToken());
+  }, [dispatch]);
 
   if (loading) {
     // 🔹 Wait until verification is complete

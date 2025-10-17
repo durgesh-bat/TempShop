@@ -1,35 +1,40 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
+import { register } from "../slices/authSlice";
 
 export default function Register() {
-  const [form, setForm] = useState({ username: "", email: "", password: "",password2:"" });
-  const [error, setError] = useState("");
+  const [form, setForm] = useState({ 
+    username: "", 
+    email: "", 
+    password: "",
+    password2: "" 
+  });
   const navigate = useNavigate();
+  const dispatch = useDispatch();
+  const { error, isAuthenticated } = useSelector((state) => state.auth);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate("/");
+    }
+  }, [isAuthenticated, navigate]);
 
   const handleChange = (e) =>
     setForm({ ...form, [e.target.name]: e.target.value });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError("");
-
+    if (form.password !== form.password2) {
+      alert("Passwords don't match!");
+      return;
+    }
+    
     try {
-      const res = await fetch("http://127.0.0.1:8000/api/auth/register/", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
-      });
-
-      const data = await res.json();
-      console.log("Register Log: ",data)
-      if (!res.ok) throw new Error(data.detail || "Registration failed");
-
-      // Save tokens and redirect
-      localStorage.setItem("access", data.token.access);
-      localStorage.setItem("refresh", data.token.refresh);
-      navigate("/");
+      await dispatch(register(form)).unwrap();
     } catch (err) {
-      setError(err.message);
+      // Error is handled by the slice
+      console.error('Registration failed:', err);
     }
   };
 

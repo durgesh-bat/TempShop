@@ -1,68 +1,53 @@
-import React, { useState, useEffect } from "react";
-import axios from "axios";
+import React, { useEffect,useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import { Link } from "react-router-dom";
+import axios from "axios";
+
+import { 
+  fetchProducts, 
+  setSearchQuery, 
+  setSelectedCategory, 
+  setSortOrder
+} from "../slices/productSlice";
 
 export default function ShopPage() {
-  const [products, setProducts] = useState([]);
-  const [filteredProducts, setFilteredProducts] = useState([]);
+  const dispatch = useDispatch();
+  const { 
+    filteredItems, 
+    loading, 
+    error, 
+    searchQuery, 
+    selectedCategory, 
+    sortOrder 
+  } = useSelector(state => state.products);
+  
   const [categories, setCategories] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
   const [adding, setAdding] = useState(false);
-
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("All");  
-  const [sortOrder, setSortOrder] = useState("");
 
   const fallbackImg = "https://via.placeholder.com/300x200?text=No+Image";
 
   // Fetch products
   useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        const res = await axios.get("http://127.0.0.1:8000/api/products/");
-        setProducts(res.data);
-        setFilteredProducts(res.data);
-      } catch (err) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchProducts();
-  }, []);
+    dispatch(fetchProducts());
+  }, [dispatch]);
 
   // Fetch categories from API
-useEffect(() => {
-  const fetchCategories = async () => {
-    try {
-      const res = await axios.get("http://127.0.0.1:8000/api/categories/");
-      // res.data: [{id, name, subcategories: [...]}, ...]
-      setCategories(res.data);
-    } catch (err) {
-      console.error("Failed to fetch categories:", err);
-    }
-  };
-  fetchCategories();
-}, []);
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const res = await axios.get("http://127.0.0.1:8000/api/categories/");
+        setCategories(res.data);
+      } catch (err) {
+        console.error("Failed to fetch categories:", err);
+      }
+    };
+    fetchCategories();
+  }, []);
 
   // Filter, search, sort
 useEffect(() => {
-  let temp = [...products];
-
-  if (searchQuery)
-    temp = temp.filter((p) =>
-      p.name.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-
-  if (selectedCategory !== "All")
-    temp = temp.filter((p) => p.category.id === selectedCategory);
-
-  if (sortOrder === "asc") temp.sort((a, b) => a.price - b.price);
-  if (sortOrder === "desc") temp.sort((a, b) => b.price - a.price);
-
-  setFilteredProducts(temp);
-}, [searchQuery, selectedCategory, sortOrder, products]);
+  // No need for local filtering as it's handled in the Redux slice
+}, [dispatch]);
 
   const addToCart = async (productId) => {
     setAdding(true);
@@ -135,13 +120,13 @@ useEffect(() => {
 
       {/* Product Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
-        {filteredProducts.length === 0 && (
+        {filteredItems.length === 0 && (
           <p className="text-center col-span-full text-gray-500">
             No products found.
           </p>
         )}
 
-        {filteredProducts.map((item) => (
+        {filteredItems.map((item) => (
           <div
             key={item.id}
             className="group bg-white dark:bg-gray-900 rounded-2xl shadow-md hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 overflow-hidden relative"

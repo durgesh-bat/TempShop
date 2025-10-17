@@ -12,12 +12,15 @@ import ProfilePage from "./pages/ProfilePage";
 import ProtectedRoute from "./components/ProtectedRoute";
 import CartPage from "./pages/CartPage";
 import ShopPage from "./pages/ShopPage";
+import { store } from './store';
+import { Provider } from 'react-redux';
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
     <BrowserRouter>
-      <Routes>
-        {/* Public Routes */}
+      <Provider store={store}>
+        <Routes>
+          {/* Public Routes */}
         <Route
           path="/"
           element={
@@ -81,6 +84,7 @@ createRoot(document.getElementById("root")).render(
         />
         
       </Routes>
+      </Provider>
     </BrowserRouter>
   </StrictMode>
 );

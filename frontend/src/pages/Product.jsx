@@ -1,31 +1,20 @@
 import React, { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
-import axios from "axios";
+import { useDispatch, useSelector } from "react-redux";
+import { fetchProductDetails } from "../slices/productSlice";
+import { addToCartThunk } from "../slices/cartSlice";
 
 export default function ProductPage() {
   const { id } = useParams();
-  const [product, setProduct] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const dispatch = useDispatch();
+  const { selectedProduct: product, loading, error } = useSelector(state => state.products);
   const [adding, setAdding] = useState(false);
 
   const fallbackImg = "https://via.placeholder.com/500x400.png?text=No+Image";
 
   useEffect(() => {
-    const fetchProduct = async () => {
-      try {
-        const res = await fetch(`http://127.0.0.1:8000/api/product/${id}/`);
-        if (!res.ok) throw new Error("Failed to fetch product");
-        const data = await res.json();
-        setProduct(data);
-      } catch (err) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchProduct();
-  }, [id]);
+    dispatch(fetchProductDetails(id));
+  }, [dispatch, id]);
 
   if (loading)
     return (
@@ -54,18 +43,14 @@ export default function ProductPage() {
       : `https://res.cloudinary.com/dq7zkxtnj/${product.image}`
     : fallbackImg;
 
-  const addToCart = async (productId) => {
+  const handleAddToCart = async (productId) => {
+    if (adding) return;
     setAdding(true);
     try {
-      const token = localStorage.getItem("access");
-      await axios.post(
-        `http://127.0.0.1:8000/api/cart/${productId}/`,
-        { quantity: 1 },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await dispatch(addToCartThunk({ productId, quantity: 1 })).unwrap();
       alert("Item added to cart!");
-    } catch {
-      alert("Error adding item to cart");
+    } catch (err) {
+      alert(err.message || "Error adding item to cart");
     } finally {
       setAdding(false);
     }
@@ -114,8 +99,11 @@ export default function ProductPage() {
           </p>
 
           <button
-              onClick={() => addToCart(product.id)}
-              className="mt-3 bg-black text-white dark:bg-white dark:text-black px-4 py-2 rounded-full hover:scale-105 transition">
+              onClick={() => handleAddToCart(product.id)}
+              disabled={adding}
+              className={`mt-3 bg-black text-white dark:bg-white dark:text-black px-4 py-2 rounded-full hover:scale-105 transition ${
+                adding ? 'opacity-50 cursor-not-allowed' : ''
+              }`}>
                 {adding ? "Adding..." : "Add to Cart"}
           </button>
 

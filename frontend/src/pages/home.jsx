@@ -1,58 +1,44 @@
 import React, { useState, useEffect } from "react";
-import { Link, useNavigate  } from "react-router-dom";
-import axios from 'axios'
+import { Link, useNavigate } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
+import { fetchProducts } from "../slices/productSlice";
+import { addToCartThunk } from "../slices/cartSlice";
+
 export default function HomePage() {
-  const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const dispatch = useDispatch();
   const navigate = useNavigate();
-
-  const fallbackImg =
-    "https://via.placeholder.com/300x200?text=No+Image";
-
-  // Fetch products from Django API
-  useEffect(() => {
-      const fetchProducts = async () => {
-        try {
-          const res = await axios.get("http://127.0.0.1:8000/api/products/");
-          if (res.status !== 200) throw new Error("Failed to fetch products");
-          setProducts(res.data); // Axios already gives parsed JSON
-          console.log("Products: ",res.data)
-        } catch (err) {
-          setError(err.message);
-        } finally {
-          setLoading(false);
-        }
-      };
-
-      fetchProducts();
-    }, []);
-  
+  const { items: products, loading, error } = useSelector(state => state.products);
+  const { isAuthenticated } = useSelector(state => state.auth);
   const [adding, setAdding] = useState(false);
 
-  const addToCart = async (product) => {
-  const token = localStorage.getItem("access");
-    console.log("Token home: ",token)
-  if (!token) {
-    console.log("Token home: ",token)
-    navigate("/login");
-    return; // 👈 stops execution
-  }
+  const fallbackImg = "https://via.placeholder.com/300x200?text=No+Image";
 
-  setAdding(true);
-  try {
-    await axios.post(
-      `http://127.0.0.1:8000/api/cart/${product.id}/`,
-      { quantity: 1 },
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-    alert(`${product.name} added to cart`);
-  } catch {
-    navigate("/login");
-  } finally {
-    setAdding(false);
-  }
-};
+  // Fetch products
+  useEffect(() => {
+    dispatch(fetchProducts());
+  }, [dispatch]);
+
+  // Handle add to cart
+  const handleAddToCart = async (product) => {
+    if (!isAuthenticated) {
+      navigate("/login");
+      return;
+    }
+
+    setAdding(true);
+    try {
+      await dispatch(addToCartThunk({ productId: product.id, quantity: 1 })).unwrap();
+      alert(`${product.name} added to cart`);
+    } catch (err) {
+      if (!isAuthenticated) {
+        navigate("/login");
+      } else {
+        alert(err.message || "Failed to add item to cart");
+      }
+    } finally {
+      setAdding(false);
+    }
+  };
 
   return (
     <div >
@@ -120,7 +106,7 @@ export default function HomePage() {
                       : "Price N/A"}
                   </p>
                   <button
-                    onClick={() => addToCart(item)}
+                    onClick={() => handleAddToCart(item)}
                     disabled={adding}
                     className={`${
                       adding ? "bg-gray-400" : "bg-black dark:bg-white dark:text-black text-white"
