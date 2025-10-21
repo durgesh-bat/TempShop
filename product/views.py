@@ -34,6 +34,8 @@ def get_categories(request):
     categories = Category.objects.all()
     serializer = CategoryWithSubcategoriesSerializer(categories, many=True)
     return Response(serializer.data)
+
+
     
 
     

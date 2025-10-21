@@ -11,6 +11,7 @@ export default function CartPage() {
   const error = useSelector(state => state.cart.error);
   const totalPrice = useSelector(state => state.cart.totalPrice);
 
+  console.log("error: ",error)
   // Fetch cart data
   useEffect(() => {
     dispatch(fetchCart());

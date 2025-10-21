@@ -1,16 +1,22 @@
 from pathlib import Path
 from dotenv import load_dotenv
 import os
+from datetime import timedelta
 import cloudinary
 import cloudinary.uploader
 import cloudinary.api
-from datetime import timedelta
 
 load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-CLOUDINARY_STORAGE = {}
+# Configure Cloudinary first, before any models are loaded
+cloudinary.config(
+    cloud_name = os.getenv('CLOUD_NAME'),
+    api_key = os.getenv('API_KEY'),
+    api_secret = os.getenv('API_SECRET'),
+    secure = True
+)
 
 CLOUDINARY_STORAGE = {
     'CLOUD_NAME': os.getenv('CLOUD_NAME'),
@@ -54,7 +60,8 @@ INSTALLED_APPS = [
     'account',
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
-    'cart'
+    'cart',
+    'shopkipper',
 ]
 
 MIDDLEWARE = [
@@ -66,7 +73,6 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-
     'account.jwt_middleware.JWTAuthMiddleware',
 ]
 

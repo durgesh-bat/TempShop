@@ -4,7 +4,9 @@ from rest_framework.response import Response
 from rest_framework import status
 from django.contrib.auth import authenticate
 from rest_framework_simplejwt.tokens import RefreshToken
-from .serializers import RegisterSerializer,UserSerializer, LoginSerializer
+
+from account.models import UserAccount
+from .serializers import RegisterSerializer,UserSerializer, LoginSerializer, UserAccountSerializer
 from django.contrib.auth.models import User
 from rest_framework.views import APIView
 
@@ -19,14 +21,19 @@ def get_tokens_for_user(user):
 @permission_classes([AllowAny])
 def register_user(request):
     serializer = RegisterSerializer(data=request.data)
-    print(f"Data Recieved in register: {serializer}")
     if serializer.is_valid():
-        user = serializer.save()
-        tokens = get_tokens_for_user(user)
-        return Response({
-            "user": UserSerializer(user).data,
-            "token":tokens
-        }, status=status.HTTP_201_CREATED)
+        try:
+            user = serializer.save()
+            tokens = get_tokens_for_user(user)
+            return Response({
+                "user": UserSerializer(user).data,
+                "tokens": tokens  # Changed from token to tokens for consistency
+            }, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            return Response({
+                "error": "Registration failed",
+                "detail": str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['POST'])
@@ -46,10 +53,29 @@ def login_user(request):
         return Response({"detail": "Invalid credentials"}, status=status.HTTP_401_UNAUTHORIZED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+from rest_framework.parsers import MultiPartParser, FormParser
 class ProfileView(APIView):
     permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser]  # ✅ allow file/image upload
 
     def get(self, request):
-        user = request.user
-        serializer = UserSerializer(user)
+        """Fetch the current user's profile"""
+        user_account = UserAccount.objects.get(user=request.user)
+        serializer = UserAccountSerializer(user_account)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+    def put(self, request):
+        """
+        Update user profile, including profile picture
+        """
+        user = request.user
+        user_account = UserAccount.objects.get(user=user)
+
+        serializer = UserAccountSerializer(
+            user_account, data=request.data, partial=True
+        )
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

@@ -13,10 +13,14 @@ class CartView(APIView):
     # 🛒 GET: Retrieve user's cart
     def get(self, request):
         try:
-            cart = get_object_or_404(Cart, user=request.user)
-            serializer = CartSerializer(cart)
-            return Response(serializer.data, status=status.HTTP_200_OK)
+            try:
+                cart = Cart.objects.get(user=request.user)
+                serializer = CartSerializer(cart)
+                return Response(serializer.data, status=status.HTTP_200_OK)
+            except Cart.DoesNotExist:
+                return Response({'error': 'Cart is Empty'}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
+            print("Exception in CartView: ",e)
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
     # ➕ PUT (or POST): Add product to cart

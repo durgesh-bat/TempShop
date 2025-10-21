@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
 from rest_framework_simplejwt.tokens import RefreshToken
+from .models import UserAccount
 
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=True, style={'input_type': 'password'})
@@ -26,6 +27,13 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         fields = ["id", "username", "email", "first_name", "last_name", "date_joined"]
 
+class UserAccountSerializer(serializers.ModelSerializer):
+    user = UserSerializer()
+    profile_picture = serializers.ImageField(required=False, allow_null=True)
+
+    class Meta:
+        model = UserAccount
+        fields = ['user', 'profile_picture', 'phone_number']
 
 class LoginSerializer(serializers.Serializer):
     username = serializers.CharField()

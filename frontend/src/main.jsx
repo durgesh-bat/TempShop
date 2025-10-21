@@ -12,8 +12,13 @@ import ProfilePage from "./pages/ProfilePage";
 import ProtectedRoute from "./components/ProtectedRoute";
 import CartPage from "./pages/CartPage";
 import ShopPage from "./pages/ShopPage";
+import Contact from "./pages/Contact";
 import { store } from './store';
 import { Provider } from 'react-redux';
+import AddProduct from "./shopkipper/AddProduct";
+import ShopkeeperHome from "./shopkipper/ShopkeeperHome";
+import ShopkeeperLogin from "./shopkipper/Login";
+import ShopkeeperRegister from "./shopkipper/Register";
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
@@ -82,7 +87,51 @@ createRoot(document.getElementById("root")).render(
           </ProtectedRoute>
         } 
         />
-        
+        <Route
+          path="/contact"
+          element={
+            <Layout>
+              <Contact />
+            </Layout>
+          }
+        />
+        {/* 🔒 Protected Routes for Shopkeeper */}
+        <Route
+          path="/add-product"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <AddProduct />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/shopkeeper"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <ShopkeeperHome />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/shopkeeper/login"
+          element={
+            <Layout>
+              <ShopkeeperLogin />
+            </Layout>
+          }
+        />
+        <Route
+          path="/shopkeeper/register"
+          element={
+            <Layout>
+              <ShopkeeperRegister />
+            </Layout>
+          }
+        />
       </Routes>
       </Provider>
     </BrowserRouter>

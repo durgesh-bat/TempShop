@@ -1,7 +1,8 @@
 from django.db import models
 import uuid
+import cloudinary
+import cloudinary.uploader
 from cloudinary.models import CloudinaryField
-
 
 def product_image_upload_path(instance, filename):
     return f"products/{instance.id}/{filename}"
@@ -44,12 +45,26 @@ class Product(models.Model):
     subcategory = models.ForeignKey(SubCategory, on_delete=models.SET_NULL, null=True, blank=True)
     created_date = models.DateTimeField(auto_now_add=True)
     modified_date = models.DateTimeField(auto_now=True)
-    image = CloudinaryField('image', folder='products')
+    image = CloudinaryField(
+        'image',
+        folder='products',
+        transformation={
+            'quality': 'auto:good',
+            'fetch_format': 'auto',
+            'crop': 'limit',
+            'width': 1000,
+            'height': 1000
+        },
+        format='jpg'
+    )
     price = models.DecimalField(max_digits=10, decimal_places=2)
     description = models.TextField()
 
     latitude = models.FloatField(null=True, blank=True)
     longitude = models.FloatField(null=True, blank=True)
+
+    rating = models.FloatField(default=0.0)
+    stock = models.PositiveIntegerField(default=0)
 
     def __str__(self):
         return self.name

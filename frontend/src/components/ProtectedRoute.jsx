@@ -5,7 +5,7 @@ import { verifyAuthToken } from "../slices/authSlice";
 
 const ProtectedRoute = ({ children }) => {
   const dispatch = useDispatch();
-  const { isAuthenticated, verifying: loading } = useSelector(state => state.auth);
+  const { isAuthenticated, verifying: loading, user } = useSelector(state => state.auth);
 
   useEffect(() => {
     dispatch(verifyAuthToken());
@@ -20,7 +20,7 @@ const ProtectedRoute = ({ children }) => {
     );
   }
 
-  if (!isAuthenticated) {
+  if (!isAuthenticated || !user) {
     return <Navigate to="/login" replace />;
   }
 

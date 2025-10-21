@@ -1,96 +1,167 @@
-import React, { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useEffect, useState, useRef } from "react";
+import { useNavigate, Navigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import { verifyAuthToken } from "../slices/authSlice";
-import { logout } from "../slices/authSlice";
+import { logout, verifyAuthToken, updateUserProfile } from "../slices/authSlice";
 
 export default function ProfilePage() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const { user, loading, error, isAuthenticated } = useSelector((state) => state.auth);
-  console.log("ProfilePage", user);
+  const fileInputRef = useRef(null);
+
+  const { user, loading, error, isAuthenticated, saving } = useSelector((state) => state.auth);
+
+  const fallbackImg = "https://via.placeholder.com/150?text=Profile";
+
+  const [editing, setEditing] = useState(false);
+  const [formData, setFormData] = useState({
+    username: "",
+    email: "",
+    first_name: "",
+    last_name: "",
+    profile_picture: null,
+  });
+
+  // Load user data into form
   useEffect(() => {
-    if (!isAuthenticated) {
-      navigate("/login");
-      return;
+    if (!user) dispatch(verifyAuthToken());
+    else {
+      setFormData({
+        username: user.user?.username || "",
+        email: user.user?.email || "",
+        first_name: user.user?.first_name || "",
+        last_name: user.user?.last_name || "",
+        profile_picture: null,
+      });
     }
-
-    const fetchProfile = async () => {
-      try {
-        await dispatch(verifyAuthToken()).unwrap();
-      } catch (err) {
-        if (err.message === "No token found" || err.response?.status === 401) {
-          navigate("/login");
-        }
-      }
-    };
-
-    fetchProfile();
-  }, [dispatch, navigate, isAuthenticated]);
+  }, [user, dispatch]);
 
   const handleLogout = () => {
     dispatch(logout());
     navigate("/login");
   };
 
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center min-h-screen text-gray-500 dark:text-gray-300 text-lg">
-        Loading your profile...
-      </div>
-    );
-  }
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
 
-  if (error) {
-    return (
-      <div className="flex justify-center items-center min-h-screen text-red-500 text-lg font-semibold">
-        {error}
-      </div>
-    );
-  }
+  const handleFileChange = (e) => {
+    if (e.target.files && e.target.files[0]) {
+      setFormData({ ...formData, profile_picture: e.target.files[0] });
+    }
+  };
 
+  const handleSave = async () => {
+    try {
+      const data = new FormData();
+      Object.keys(formData).forEach((key) => {
+        if (formData[key] !== null) data.append(key, formData[key]);
+      });
+
+      await dispatch(updateUserProfile(data)).unwrap();
+      alert("✅ Profile updated successfully!");
+      setEditing(false);
+    } catch (err) {
+      console.error(err);
+      alert("❌ Failed to update profile.");
+    }
+  };
+  // Determine what to show in profile image
+const profilePicUrl = formData.profile_picture
+  ? typeof formData.profile_picture === "string"
+    ? formData.profile_picture // existing URL from backend
+    : URL.createObjectURL(formData.profile_picture) // newly selected file
+  : user.profile_picture;
+
+
+  if (loading) return <LoadingScreen message="Loading your profile..." />;
+  if (error) return <ErrorScreen message={error} />;
+  if (!isAuthenticated || !user) return <Navigate to="/login" replace />;
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-100 to-gray-50 dark:from-gray-900 dark:to-black transition-all duration-300">
-      
-     
-
-      {/* Profile Content */}
-      <div className="flex justify-center items-start py-16">
-        <div className="max-w-md w-full bg-white dark:bg-gray-900 rounded-3xl shadow-xl p-8 space-y-6">
-          <div className="flex flex-col items-center">
-            <div className="w-24 h-24 rounded-full bg-gray-300 dark:bg-gray-700 flex items-center justify-center text-3xl font-bold text-gray-600 dark:text-gray-300">
-              {user.username?.charAt(0).toUpperCase() || "U"}
-            </div>
-            <h2 className="mt-4 text-2xl font-bold text-center">{user.username}</h2>
-          </div>
-
-          <div className="space-y-3">
-            <ProfileRow label="Email" value={user.email || "N/A"} />
-            <ProfileRow label="First Name" value={user.first_name || "N/A"} />
-            <ProfileRow label="Last Name" value={user.last_name || "N/A"} />
-            <ProfileRow
-              label="Joined"
-              value={new Date(user.date_joined).toLocaleDateString()}
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-black px-6 py-12">
+      <div className="bg-white dark:bg-gray-900 shadow-2xl rounded-3xl p-8 md:p-10 w-full max-w-lg transition-all duration-300">
+        {/* Profile Image */}
+        <div className="flex flex-col items-center relative">
+          <div className="relative group cursor-pointer" onClick={() => fileInputRef.current.click()}>
+            <img
+              src={profilePicUrl}
+              alt="Profile"
+              onError={(e) => (e.target.src = fallbackImg)}
+              className="w-32 h-32 rounded-full object-cover border-4 border-gray-300 dark:border-gray-700 shadow-md"
             />
+            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-sm rounded-full transition">
+              📸 Change
+            </div>
           </div>
+          <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileChange} />
+          <h2 className="mt-4 text-3xl font-bold text-center text-gray-800 dark:text-white">{formData.username || "User"}</h2>
+        </div>
 
-          <button
-            onClick={handleLogout}
-            className="w-full py-2 rounded-full bg-black dark:bg-white text-white dark:text-black font-semibold hover:scale-105 hover:shadow-lg transition-transform"
-          >
-            Logout
-          </button>
+        {/* Editable Form */}
+        <div className="mt-8 space-y-4">
+          <ProfileField label="Username" name="username" value={formData.username} editable={editing} onChange={handleChange} />
+          <ProfileField label="Email" name="email" value={formData.email} editable={editing} onChange={handleChange} />
+          <ProfileField label="First Name" name="first_name" value={formData.first_name} editable={editing} onChange={handleChange} />
+          <ProfileField label="Last Name" name="last_name" value={formData.last_name} editable={editing} onChange={handleChange} />
+          <ProfileRow
+            label="Joined"
+            value={user?.user?.date_joined ? new Date(user.user.date_joined).toLocaleDateString() : "N/A"}
+          />
+        </div>
+
+        {/* Buttons */}
+        <div className="mt-8 flex justify-between gap-4">
+          {editing ? (
+            <>
+              <button onClick={handleSave} disabled={saving} className="flex-1 bg-green-600 text-white py-2 rounded-xl font-semibold hover:bg-green-700 transition disabled:opacity-70">
+                {saving ? "Saving..." : "Save Changes"}
+              </button>
+              <button onClick={() => setEditing(false)} className="flex-1 bg-gray-400 dark:bg-gray-700 text-white py-2 rounded-xl font-semibold hover:bg-gray-500 dark:hover:bg-gray-600 transition">
+                Cancel
+              </button>
+            </>
+          ) : (
+            <>
+              <button onClick={() => setEditing(true)} className="flex-1 bg-blue-600 text-white py-2 rounded-xl font-semibold hover:bg-blue-700 transition">
+                ✏️ Edit Profile
+              </button>
+              <button onClick={handleLogout} className="flex-1 bg-red-600 text-white py-2 rounded-xl font-semibold hover:bg-red-700 transition">
+                Logout
+              </button>
+            </>
+          )}
         </div>
       </div>
     </div>
   );
 }
 
-function ProfileRow({ label, value }) {
+// Reusable field
+function ProfileField({ label, name, value, editable, onChange }) {
   return (
-    <div className="flex justify-between bg-gray-200 dark:bg-gray-800 p-3 rounded-xl">
-      <span className="font-medium text-gray-700 dark:text-gray-300">{label}:</span>
-      <span className="text-gray-900 dark:text-gray-100">{value}</span>
+    <div>
+      <label className="block text-gray-600 dark:text-gray-300 text-sm font-medium mb-1">{label}</label>
+      {editable ? (
+        <input type="text" name={name} value={value || ""} onChange={onChange} className="w-full border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 dark:bg-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none" />
+      ) : (
+        <div className="w-full px-3 py-2 bg-gray-100 dark:bg-gray-800 rounded-lg text-gray-800 dark:text-white">{value || "N/A"}</div>
+      )}
     </div>
   );
+}
+
+function ProfileRow({ label, value }) {
+  return (
+    <div>
+      <label className="block text-gray-600 dark:text-gray-300 text-sm font-medium mb-1">{label}</label>
+      <div className="w-full px-3 py-2 bg-gray-100 dark:bg-gray-800 rounded-lg text-gray-800 dark:text-white">{value}</div>
+    </div>
+  );
+}
+
+function LoadingScreen({ message }) {
+  return <div className="flex justify-center items-center min-h-screen text-gray-500 dark:text-gray-300 text-lg">{message}</div>;
+}
+
+function ErrorScreen({ message }) {
+  return <div className="flex justify-center items-center min-h-screen text-red-500 text-lg font-semibold">{message}</div>;
 }
