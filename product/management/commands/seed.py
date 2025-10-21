@@ -3,15 +3,17 @@ from django.core.management.base import BaseCommand
 from product.models import Product, Category
 import cloudinary
 import cloudinary.uploader
+from dotenv import load_dotenv
+import os
+load_dotenv()
 
 # ✅ Configure Cloudinary here
 cloudinary.config(
-    cloud_name="dq7zkxtnj",  # replace with your Cloudinary cloud name
-    api_key="293625196447388",  # replace with your API key
-    api_secret="-ZLaExlG3npgFUKSKmUunGWnN_M",  # replace with your API secret
-    secure=True
+    cloud_name = os.getenv('CLOUD_NAME'),
+    api_key = os.getenv('API_KEY'),
+    api_secret = os.getenv('API_SECRET'),
+    secure = True
 )
-
 
 def fetch_products_from_api(start, end):
     """
