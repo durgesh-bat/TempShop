@@ -4,7 +4,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from django.contrib.auth import authenticate
 from rest_framework_simplejwt.tokens import RefreshToken
-
+from django.shortcuts import get_object_or_404
 from account.models import UserAccount
 from .serializers import RegisterSerializer,UserSerializer, LoginSerializer, UserAccountSerializer
 from django.contrib.auth.models import User
@@ -24,16 +24,20 @@ def register_user(request):
     if serializer.is_valid():
         try:
             user = serializer.save()
+            UserAccount.objects.create(user=user)
+            # 3️⃣ Generate tokens
             tokens = get_tokens_for_user(user)
             return Response({
-                "user": UserSerializer(user).data,
-                "tokens": tokens  # Changed from token to tokens for consistency
+                "user": UserAccountSerializer(user.useraccount).data,  # return full profile
+                "tokens": tokens
             }, status=status.HTTP_201_CREATED)
+
         except Exception as e:
             return Response({
                 "error": "Registration failed",
                 "detail": str(e)
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['POST'])
@@ -60,22 +64,22 @@ class ProfileView(APIView):
 
     def get(self, request):
         """Fetch the current user's profile"""
-        user_account = UserAccount.objects.get(user=request.user)
+        user = User.objects.get(username=request.user.username)
+        user_account = get_object_or_404(UserAccount, user_id=user.id)
+        print("UserAccount found:", user_account)
         serializer = UserAccountSerializer(user_account)
+        print("Serialized data:", serializer.data)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
     def put(self, request):
-        """
-        Update user profile, including profile picture
-        """
         user = request.user
         user_account = UserAccount.objects.get(user=user)
 
-        serializer = UserAccountSerializer(
-            user_account, data=request.data, partial=True
-        )
+        serializer = UserAccountSerializer(user_account, data=request.data, partial=True)
+
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
+
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

@@ -41,41 +41,38 @@ export const register = createAsyncThunk(
 // --- Async thunk for token verification ---
 export const verifyAuthToken = createAsyncThunk(
   'auth/verifyToken',
-  async (_, { rejectWithValue, dispatch }) => {
+  async (_, { rejectWithValue }) => {
     try {
       const token = localStorage.getItem("access_token");
       if (!token) return rejectWithValue({ message: 'No token found' });
 
+      // Verify token
       await verifyToken(token);
 
+      // Fetch user profile after token verification
       const response = await axiosInstance.get('/auth/profile/');
-      return { user: response.data };
+      return response.data;   // return user object
     } catch (err) {
-      const message = err?.response?.data?.detail || err?.response?.data || err.message || 'Token verify failed';
+      const message = err?.response?.data?.detail || err?.message || 'Token verify failed';
       return rejectWithValue({ message });
     }
   }
 );
 
-// --- Async thunk for updating profile ---
+
 export const updateUserProfile = createAsyncThunk(
   'auth/updateProfile',
   async (formData, { rejectWithValue }) => {
     try {
-      const token = localStorage.getItem("access_token");
-      const res = await axiosInstance.put('/auth/profile/', formData, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'multipart/form-data',
-        },
+      const res = await axiosInstance.patch('/auth/profile/', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
       });
-      return res.data;
+      return res.data; // full profile object
     } catch (err) {
       return rejectWithValue(err.response?.data || 'Update failed');
     }
   }
 );
-
 
 // --- Initial state ---
 const initialState = {

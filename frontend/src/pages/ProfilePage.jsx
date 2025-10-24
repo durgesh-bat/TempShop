@@ -10,7 +10,11 @@ export default function ProfilePage() {
 
   const { user, loading, error, isAuthenticated, saving } = useSelector((state) => state.auth);
 
-  const fallbackImg = "https://via.placeholder.com/150?text=Profile";
+  // Fallback image generator
+  const fallbackImg = (first, last) => {
+    const text = encodeURIComponent(`${first}${last}`);
+    return `https://placehold.co/150x150?text=${text}`;
+  };
 
   const [editing, setEditing] = useState(false);
   const [formData, setFormData] = useState({
@@ -23,16 +27,18 @@ export default function ProfilePage() {
 
   // Load user data into form
   useEffect(() => {
-    if (!user) dispatch(verifyAuthToken());
-    else {
+    if (!user) {
+      dispatch(verifyAuthToken());
+    } else {
       setFormData({
-        username: user.user?.username || "",
-        email: user.user?.email || "",
-        first_name: user.user?.first_name || "",
-        last_name: user.user?.last_name || "",
+        username: user.username || "",
+        email: user.email || "",
+        first_name: user.first_name || "",
+        last_name: user.last_name || "",
         profile_picture: null,
       });
     }
+    console.log("User data loaded into form:", user);
   }, [user, dispatch]);
 
   const handleLogout = () => {
@@ -65,27 +71,32 @@ export default function ProfilePage() {
       alert("❌ Failed to update profile.");
     }
   };
-  // Determine what to show in profile image
-const profilePicUrl = formData.profile_picture
-  ? typeof formData.profile_picture === "string"
-    ? formData.profile_picture // existing URL from backend
-    : URL.createObjectURL(formData.profile_picture) // newly selected file
-  : user.profile_picture;
 
+  // Determine what to show in profile image
+  const profilePicUrl = formData.profile_picture
+    ? typeof formData.profile_picture === "string"
+      ? formData.profile_picture
+      : URL.createObjectURL(formData.profile_picture)
+    : user.profile_picture || fallbackImg(
+        user?.first_name?.charAt(0)?.toUpperCase() || user?.username?.charAt(0)?.toUpperCase() || "U",
+        user?.last_name?.charAt(0)?.toUpperCase() || ""
+      );
 
   if (loading) return <LoadingScreen message="Loading your profile..." />;
   if (error) return <ErrorScreen message={error} />;
   if (!isAuthenticated || !user) return <Navigate to="/login" replace />;
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-black px-6 py-12">
       <div className="bg-white dark:bg-gray-900 shadow-2xl rounded-3xl p-8 md:p-10 w-full max-w-lg transition-all duration-300">
+        
         {/* Profile Image */}
         <div className="flex flex-col items-center relative">
           <div className="relative group cursor-pointer" onClick={() => fileInputRef.current.click()}>
             <img
-              src={profilePicUrl}
+              src={user.profile_picture || profilePicUrl}
               alt="Profile"
-              onError={(e) => (e.target.src = fallbackImg)}
+              onError={(e) => (e.target.src = fallbackImg("U", ""))}
               className="w-32 h-32 rounded-full object-cover border-4 border-gray-300 dark:border-gray-700 shadow-md"
             />
             <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-sm rounded-full transition">
@@ -93,7 +104,7 @@ const profilePicUrl = formData.profile_picture
             </div>
           </div>
           <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileChange} />
-          <h2 className="mt-4 text-3xl font-bold text-center text-gray-800 dark:text-white">{formData.username || "User"}</h2>
+          <h2 className="mt-4 text-3xl font-bold text-center text-gray-800 dark:text-white">{formData.username || user.username || "User"}</h2>
         </div>
 
         {/* Editable Form */}
@@ -102,10 +113,7 @@ const profilePicUrl = formData.profile_picture
           <ProfileField label="Email" name="email" value={formData.email} editable={editing} onChange={handleChange} />
           <ProfileField label="First Name" name="first_name" value={formData.first_name} editable={editing} onChange={handleChange} />
           <ProfileField label="Last Name" name="last_name" value={formData.last_name} editable={editing} onChange={handleChange} />
-          <ProfileRow
-            label="Joined"
-            value={user?.user?.date_joined ? new Date(user.user.date_joined).toLocaleDateString() : "N/A"}
-          />
+          <ProfileRow label="Joined" value={user?.date_joined ? new Date(user.date_joined).toLocaleDateString() : "N/A"} />
         </div>
 
         {/* Buttons */}
