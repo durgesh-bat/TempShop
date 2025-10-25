@@ -10,6 +10,7 @@ import {
   setSortOrder,
   setCurrentPage,
 } from "../slices/productSlice";
+import { addToCartThunk } from "../slices/cartSlice";
 
 export default function ShopPage() {
   const dispatch = useDispatch();
@@ -53,14 +54,10 @@ export default function ShopPage() {
   const addToCart = async (productId) => {
     setAdding(true);
     try {
-      const token = localStorage.getItem("access");
-      await axios.post(
-        `http://127.0.0.1:8000/api/cart/${productId}/`,
-        { quantity: 1 },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await dispatch(addToCartThunk({ productId, quantity: 1 })).unwrap();
       alert("✅ Item added to cart!");
-    } catch {
+    } catch (err) {
+      console.error('Add to cart error:', err);
       alert("❌ Error adding item to cart");
     } finally {
       setAdding(false);

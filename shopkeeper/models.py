@@ -1,0 +1,90 @@
+from django.db import models
+from django.contrib.auth.models import User
+import uuid
+from cloudinary.models import CloudinaryField
+from product.models import Product  # ← IMPORTANT
+
+class Shopkeeper(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="shopkeeper_profile")
+    name = models.CharField(max_length=150)
+    email = models.EmailField(unique=True)
+    phone_number = models.CharField(max_length=15, blank=True, null=True)
+    alternate_phone_number = models.CharField(max_length=15, blank=True, null=True)
+    address = models.TextField(blank=True, null=True)
+    profile_picture = CloudinaryField("profile_picture", folder="shopkeepers", blank=True, null=True)
+
+    business_name = models.CharField(max_length=200, blank=True, null=True)
+    business_type = models.CharField(max_length=100, blank=True, null=True)
+
+    is_active = models.BooleanField(default=True)
+    is_verified = models.BooleanField(default=False)
+
+    longitude = models.FloatField(null=True, blank=True)
+    latitude = models.FloatField(null=True, blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.name
+
+
+class ShopkeeperProduct(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    shopkeeper = models.ForeignKey(Shopkeeper, on_delete=models.CASCADE, related_name="products")
+    
+    # Link to your global Product table
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="shopkeeper_products")
+
+    stock_quantity = models.PositiveIntegerField(default=0)
+
+    def __str__(self):
+        return f"{self.product.name} - {self.shopkeeper.name}"
+
+
+class ShopkeeperOrder(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    shopkeeper = models.ForeignKey(Shopkeeper, on_delete=models.CASCADE, related_name="orders")
+
+    customer_name = models.CharField(max_length=150)
+    customer_email = models.EmailField(blank=True, null=True)
+    customer_phone = models.CharField(max_length=15)
+    customer_address = models.TextField()
+
+    order_details = models.JSONField()
+    total_amount = models.DecimalField(max_digits=10, decimal_places=2)
+
+    status = models.CharField(max_length=20, default="pending")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Order {self.id} - {self.shopkeeper.name}"
+
+
+class ShopkeeperDocument(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    shopkeeper = models.ForeignKey(Shopkeeper, on_delete=models.CASCADE, related_name="documents")
+    document_type = models.CharField(max_length=150)
+    document_name = models.CharField(max_length=255)
+    document_file = CloudinaryField('document', folder="documents")
+    is_verified = models.BooleanField(default=False)
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.document_name
+
+
+class ShopkeeperReview(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    shopkeeper = models.ForeignKey(Shopkeeper, on_delete=models.CASCADE, related_name="reviews")
+    reviewer_name = models.CharField(max_length=100)
+    reviewer_email = models.EmailField(blank=True, null=True)
+    rating = models.PositiveIntegerField(default=5)
+    review_text = models.TextField(blank=True, null=True)
+    is_verified = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Review for {self.shopkeeper.name}"

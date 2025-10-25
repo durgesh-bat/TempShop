@@ -64,7 +64,6 @@ class Product(models.Model):
     longitude = models.FloatField(null=True, blank=True)
 
     rating = models.FloatField(default=0.0)
-    stock = models.PositiveIntegerField(default=0)
-
+    is_available = models.BooleanField(default=True)
     def __str__(self):
         return self.name

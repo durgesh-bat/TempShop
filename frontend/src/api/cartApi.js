@@ -14,3 +14,7 @@ export const removeFromCart = async (productId) => {
   const res = await axiosInstance.delete(`/cart/${productId}/`);
   return res.data;
 };
+export const updateCartQuantity = async (productId, quantity) => {
+  const res = await axiosInstance.patch(`/cart/${productId}/`, { quantity });
+  return res.data;
+};

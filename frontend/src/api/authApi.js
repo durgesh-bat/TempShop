@@ -15,3 +15,21 @@ export const verifyToken = async (token) => {
   const res = await axiosInstance.post("/auth/token/verify/", {token });
   return res.data;
 };
+
+export const fetchProfile = async () => {
+  const res = await axiosInstance.get("/auth/profile/");
+  return res.data;
+};
+export const updateProfile = async (profileData) => {
+  try {
+    const res = await axiosInstance.put("/auth/profile/", profileData);
+    return res.data;
+  } catch (error) {
+    console.error('Profile update error:', error);
+    const errorMessage = error.response?.data?.message || 
+                        error.response?.data?.detail || 
+                        error.message || 
+                        'Profile update failed';
+    throw new Error(errorMessage);
+  }
+};

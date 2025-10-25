@@ -1,60 +1,94 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useSelector } from "react-redux";
-import axios from "axios";
+import axiosInstance from "./api/axiosInstance"; // ✅ Use axiosInstance
 
 export default function Layout({ children }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [cartCount, setCartCount] = useState(0);
+  const [imageError, setImageError] = useState(false);
 
   const { user, isAuthenticated } = useSelector((state) => state.auth);
 
   // Fetch cart items count
   useEffect(() => {
-  const fetchCartCount = async () => {
-    try {
-      const token = localStorage.getItem("access_token");
-      if (!token) return;
-
-      const res = await axios.get("http://127.0.0.1:8000/api/cart/", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      const items = res.data.items || [];
-      const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
-      setCartCount(totalItems);
-    } catch (err) {
-      // Handle empty cart gracefully
-      if (err.response?.status === 404 && err.response?.data?.error === "Cart is Empty") {
-        setCartCount(0); // Cart is empty, show 0
-      } else {
-        console.error("Failed to fetch cart:", err);
+    const fetchCartCount = async () => {
+      if (!isAuthenticated || !user) {
+        setCartCount(0);
+        return;
       }
-    }
-  };
 
-  fetchCartCount();
-}, []);
 
+      try {
+        const res = await axiosInstance.get("/cart/");
+        const items = res.data.items || [];
+        const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
+        setCartCount(totalItems);
+      } catch (err) {
+        console.error("Failed to fetch cart:", err);
+        if (err.response?.status === 404 || err.response?.status === 401) {
+          setCartCount(0);
+        } else {
+          // For other errors, still set to 0 but could show a subtle indicator
+          setCartCount(0);
+        }
+      }
+    };
+
+    fetchCartCount();
+  }, [isAuthenticated, user]);
+      console.log("IsAuthenticated: ",isAuthenticated,"User: ",user);
 
   // Fallback image
-    const fallbackImg = (first, last) => {
+  const fallbackImg = (first, last) => {
     const text = encodeURIComponent(`${first}${last}`);
     return `https://placehold.co/150x150?text=${text}`;
   };
 
-  // Profile picture URL
-  const profilePicUrl = user?.profile_picture
-    ? user.profile_picture.startsWith("http")
-      ? user.profile_picture
-      : `https://res.cloudinary.com/dq7zkxtnj/${user.profile_picture}`
-    : fallbackImg(
-        user?.first_name?.charAt(0)?.toUpperCase() || user?.username?.charAt(0)?.toUpperCase() || "",
-        user?.last_name?.charAt(0) || ""
-      );
+  // Profile picture URL helper
+  const getProfilePicUrl = () => {
+    if (!user) {
+      return fallbackImg("U", "");
+    }
 
-  // Username
-  const username = user?.username || user?.user?.username || "User";
+    const pic = user.profile_picture;
+    
+    if (pic) {
+      // Handle Cloudinary object response
+      if (typeof pic === 'object' && pic.url) {
+        return pic.url;
+      }
+      // Handle complete URL string
+      if (typeof pic === 'string' && pic.startsWith('http')) {
+        return pic;
+      }
+      // Handle Cloudinary path
+      if (typeof pic === 'string' && pic.length > 0) {
+        return `https://res.cloudinary.com/dq7zkxtnj/${pic}`;
+      }
+    }
+
+    // Fallback
+    const firstInitial = user.first_name?.charAt(0)?.toUpperCase() || 
+                         user.username?.charAt(0)?.toUpperCase() || "U";
+    const lastInitial = user.last_name?.charAt(0)?.toUpperCase() || "";
+    return fallbackImg(firstInitial, lastInitial);
+  };
+
+  const profilePicUrl = getProfilePicUrl();
+  const username = user?.username || "User";
+
+  // Handle image load error
+  const handleImageError = (e) => {
+    if (!imageError && e.target) {
+      setImageError(true);
+      const firstInitial = user?.first_name?.charAt(0)?.toUpperCase() || 
+                           user?.username?.charAt(0)?.toUpperCase() || "U";
+      const lastInitial = user?.last_name?.charAt(0)?.toUpperCase() || "";
+      e.target.src = fallbackImg(firstInitial, lastInitial);
+      e.target.onerror = null; // Prevent infinite loop
+    }
+  };
 
   return (
     <div className="bg-gradient-to-b from-gray-100 to-gray-50 dark:from-gray-900 dark:to-black transition-all duration-300">
@@ -76,7 +110,7 @@ export default function Layout({ children }) {
                 <img
                   src={profilePicUrl}
                   alt="Profile"
-                  onError={(e) => (e.target.src = fallbackImg)}
+                  onError={handleImageError}
                   className="w-8 h-8 rounded-full object-cover border-2 border-gray-300 dark:border-gray-700"
                 />
                 <span>{username}</span>
@@ -126,7 +160,7 @@ export default function Layout({ children }) {
                 <img
                   src={profilePicUrl}
                   alt="Profile"
-                  onError={(e) => (e.target.src = fallbackImg)}
+                  onError={handleImageError}
                   className="w-6 h-6 rounded-full object-cover border-2 border-gray-300 dark:border-gray-700"
                 />
                 <span>{username}</span>

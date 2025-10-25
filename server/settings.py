@@ -61,7 +61,7 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
     'cart',
-    'shopkipper',
+    'shopkeeper',
 ]
 
 MIDDLEWARE = [
@@ -105,6 +105,12 @@ ASGI_APPLICATION = 'server.asgi.application'
 #         'NAME': BASE_DIR / 'db.sqlite3',
 #     }
 # }
+
+# Validate required environment variables
+required_db_vars = ['DB_NAME', 'DB_USER', 'DB_PASSWORD', 'DB_HOST']
+for var in required_db_vars:
+    if not os.getenv(var):
+        raise ValueError(f"Required environment variable {var} is not set")
 
 DATABASES = {
         'default': {

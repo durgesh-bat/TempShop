@@ -46,20 +46,23 @@ export const verifyAuthToken = createAsyncThunk(
       const token = localStorage.getItem("access_token");
       if (!token) return rejectWithValue({ message: 'No token found' });
 
-      // Verify token
       await verifyToken(token);
-
-      // Fetch user profile after token verification
       const response = await axiosInstance.get('/auth/profile/');
-      return response.data;   // return user object
+      console.log('Profile response:', response.data); // Debug log
+      return response.data;
     } catch (err) {
-      const message = err?.response?.data?.detail || err?.message || 'Token verify failed';
+      console.error('Token verification failed:', err);
+      const message = err?.response?.data?.detail || 
+                     err?.response?.data?.message || 
+                     err?.response?.data || 
+                     err?.message || 
+                     'Token verification failed';
       return rejectWithValue({ message });
     }
   }
 );
 
-
+// --- Async thunk for updating profile ---
 export const updateUserProfile = createAsyncThunk(
   'auth/updateProfile',
   async (formData, { rejectWithValue }) => {
@@ -67,9 +70,23 @@ export const updateUserProfile = createAsyncThunk(
       const res = await axiosInstance.patch('/auth/profile/', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
-      return res.data; // full profile object
+      return res.data;
     } catch (err) {
       return rejectWithValue(err.response?.data || 'Update failed');
+    }
+  }
+);
+
+// --- Async thunk for fetching profile separately ---
+export const fetchProfile = createAsyncThunk(
+  'auth/fetchProfile',
+  async (_, { rejectWithValue }) => {
+    try {
+      const res = await axiosInstance.get('/auth/profile/');
+      console.log('Fetch profile response:', res.data); // Debug log
+      return res.data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data || 'Fetch profile failed');
     }
   }
 );
@@ -81,7 +98,7 @@ const initialState = {
   verifying: false,
   saving: false,
   error: null,
-  isAuthenticated: !!localStorage.getItem("access_token"),
+  isAuthenticated: false,
 };
 
 // --- Slice ---
@@ -94,52 +111,114 @@ const authSlice = createSlice({
       localStorage.removeItem("refresh_token");
       state.user = null;
       state.isAuthenticated = false;
+      state.error = null;
     },
   },
   extraReducers: (builder) => {
     // Login
     builder
-      .addCase(login.pending, (state) => { state.loading = true; state.error = null; })
-      .addCase(login.fulfilled, (state, action) => {
-        state.loading = false; state.isAuthenticated = true; state.user = action.payload.user;
+      .addCase(login.pending, (state) => { 
+        state.loading = true; 
+        state.error = null; 
       })
-      .addCase(login.rejected, (state, action) => {
-        state.loading = false; state.user = null; state.isAuthenticated = false;
-        state.error = action.payload?.message || action.error?.message || 'Login failed';
+      .addCase(login.fulfilled, (state, action) => { 
+        state.loading = false; 
+        state.isAuthenticated = true; 
+        // ✅ Backend returns { user: {...}, tokens: {...} }
+        state.user = action.payload.user || action.payload;
+        console.log('Login user set:', state.user);
+      })
+      .addCase(login.rejected, (state, action) => { 
+        state.loading = false; 
+        state.user = null; 
+        state.isAuthenticated = false; 
+        state.error = action.payload?.message || action.error?.message || 'Login failed'; 
       });
 
     // Register
     builder
-      .addCase(register.pending, (state) => { state.loading = true; state.error = null; })
-      .addCase(register.fulfilled, (state, action) => {
-        state.loading = false; state.isAuthenticated = true; state.user = action.payload.user;
+      .addCase(register.pending, (state) => { 
+        state.loading = true; 
+        state.error = null; 
       })
-      .addCase(register.rejected, (state, action) => {
-        state.loading = false; state.user = null; state.isAuthenticated = false;
-        state.error = action.payload?.message || action.error?.message || 'Registration failed';
+      .addCase(register.fulfilled, (state, action) => { 
+        state.loading = false; 
+        state.isAuthenticated = true; 
+        // ✅ Backend returns { user: {...}, tokens: {...} }
+        state.user = action.payload.user || action.payload;
+        console.log('Register user set:', state.user);
+      })
+      .addCase(register.rejected, (state, action) => { 
+        state.loading = false; 
+        state.user = null; 
+        state.isAuthenticated = false; 
+        state.error = action.payload?.message || action.error?.message || 'Registration failed'; 
       });
 
     // Verify token
     builder
-      .addCase(verifyAuthToken.pending, (state) => { state.verifying = true; state.error = null; })
-      .addCase(verifyAuthToken.fulfilled, (state, action) => { state.verifying = false; state.isAuthenticated = true; state.user = action.payload.user; })
-      .addCase(verifyAuthToken.rejected, (state, action) => {
-        state.verifying = false; state.isAuthenticated = false;
-        state.error = action.payload?.message || action.error?.message || 'Token verification failed';
-        localStorage.removeItem("access_token"); localStorage.removeItem("refresh_token");
+      .addCase(verifyAuthToken.pending, (state) => { 
+        state.verifying = true; 
+        state.error = null; 
+      })
+      .addCase(verifyAuthToken.fulfilled, (state, action) => { 
+        state.verifying = false; 
+        state.isAuthenticated = true; 
+        // ✅ Profile endpoint returns flat structure: { id, username, email, ... }
+        state.user = action.payload;
+        console.log('Verify user set:', state.user);
+      })
+      .addCase(verifyAuthToken.rejected, (state, action) => { 
+        state.verifying = false; 
+        state.isAuthenticated = false; 
+        state.user = null;
+        const errorMsg = action.payload?.message || action.error?.message || 'Authentication failed';
+        state.error = errorMsg;
+        localStorage.removeItem("access_token"); 
+        localStorage.removeItem("refresh_token"); 
       });
 
     // Update profile
     builder
-      .addCase(updateUserProfile.pending, (state) => { state.saving = true; state.error = null; })
+      .addCase(updateUserProfile.pending, (state) => { 
+        state.saving = true; 
+        state.error = null; 
+      })
       .addCase(updateUserProfile.fulfilled, (state, action) => { 
         state.saving = false; 
+        // ✅ Profile update returns flat structure
         state.user = action.payload;
+        console.log('Update user set:', state.user);
       })
-      .addCase(updateUserProfile.rejected, (state, action) => {
-        state.saving = false;
-        state.error = action.payload?.message || action.error?.message || 'Profile update failed';
+      .addCase(updateUserProfile.rejected, (state, action) => { 
+        state.saving = false; 
+        state.error = action.payload?.message || action.error?.message || 'Profile update failed'; 
       });
+
+    // Fetch profile
+    builder
+      .addCase(fetchProfile.pending, (state) => { 
+        state.loading = true; 
+        state.error = null; 
+      })
+      .addCase(fetchProfile.fulfilled, (state, action) => { 
+        state.loading = false; 
+        // ✅ Profile endpoint returns flat structure
+        state.user = action.payload;
+        console.log('Fetch user set:', state.user);
+      })
+      .addCase(fetchProfile.rejected, (state, action) => { 
+        state.loading = false; 
+        const errorMsg = typeof action.payload === 'string' ? action.payload : 
+                        action.payload?.message || action.payload?.detail || 
+                        action.error?.message || 'Fetch profile failed';
+        state.error = errorMsg;
+      });
+
+    // Clear cart on logout
+    builder.addCase('auth/logout', (state) => {
+      // Cart slice will listen to this action
+    });
   },
 });
 

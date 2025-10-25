@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useNavigate, Navigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import { logout, verifyAuthToken, updateUserProfile } from "../slices/authSlice";
+import { logout, updateUserProfile, fetchProfile } from "../slices/authSlice";
 
 export default function ProfilePage() {
   const navigate = useNavigate();
@@ -10,35 +10,37 @@ export default function ProfilePage() {
 
   const { user, loading, error, isAuthenticated, saving } = useSelector((state) => state.auth);
 
-  // Fallback image generator
   const fallbackImg = (first, last) => {
     const text = encodeURIComponent(`${first}${last}`);
     return `https://placehold.co/150x150?text=${text}`;
   };
 
   const [editing, setEditing] = useState(false);
-  const [formData, setFormData] = useState({
+const [formData, setFormData] = useState({
     username: "",
     email: "",
     first_name: "",
     last_name: "",
+    phone_number: "",  // ADD THIS
     profile_picture: null,
   });
 
   // Load user data into form
   useEffect(() => {
-    if (!user) {
-      dispatch(verifyAuthToken());
-    } else {
+    if (user) {
       setFormData({
         username: user.username || "",
         email: user.email || "",
         first_name: user.first_name || "",
         last_name: user.last_name || "",
+        phone_number: user.phone_number || "",
         profile_picture: null,
       });
+    } else {
+      dispatch(fetchProfile()).catch(error => {
+        console.error('Failed to load profile:', error);
+      });
     }
-    console.log("User data loaded into form:", user);
   }, [user, dispatch]);
 
   const handleLogout = () => {
@@ -66,21 +68,27 @@ export default function ProfilePage() {
       await dispatch(updateUserProfile(data)).unwrap();
       alert("✅ Profile updated successfully!");
       setEditing(false);
+      // Refresh profile from backend
+      dispatch(fetchProfile());
     } catch (err) {
       console.error(err);
       alert("❌ Failed to update profile.");
     }
   };
 
-  // Determine what to show in profile image
-  const profilePicUrl = formData.profile_picture
-    ? typeof formData.profile_picture === "string"
-      ? formData.profile_picture
-      : URL.createObjectURL(formData.profile_picture)
-    : user.profile_picture || fallbackImg(
-        user?.first_name?.charAt(0)?.toUpperCase() || user?.username?.charAt(0)?.toUpperCase() || "U",
-        user?.last_name?.charAt(0)?.toUpperCase() || ""
-      );
+const profilePicUrl = formData.profile_picture
+  ? (typeof formData.profile_picture === "string" 
+      ? formData.profile_picture 
+      : URL.createObjectURL(formData.profile_picture))
+  : (user?.profile_picture 
+      ? (typeof user.profile_picture === "string" 
+          ? user.profile_picture 
+          : user.profile_picture.url)  // Cloudinary field returns object with url
+      : fallbackImg(
+          user?.first_name?.charAt(0)?.toUpperCase() || 
+          user?.username?.charAt(0)?.toUpperCase() || "U",
+          user?.last_name?.charAt(0)?.toUpperCase() || ""
+        ));
 
   if (loading) return <LoadingScreen message="Loading your profile..." />;
   if (error) return <ErrorScreen message={error} />;
@@ -89,12 +97,11 @@ export default function ProfilePage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-black px-6 py-12">
       <div className="bg-white dark:bg-gray-900 shadow-2xl rounded-3xl p-8 md:p-10 w-full max-w-lg transition-all duration-300">
-        
         {/* Profile Image */}
         <div className="flex flex-col items-center relative">
           <div className="relative group cursor-pointer" onClick={() => fileInputRef.current.click()}>
             <img
-              src={user.profile_picture || profilePicUrl}
+              src={profilePicUrl}
               alt="Profile"
               onError={(e) => (e.target.src = fallbackImg("U", ""))}
               className="w-32 h-32 rounded-full object-cover border-4 border-gray-300 dark:border-gray-700 shadow-md"
@@ -114,6 +121,13 @@ export default function ProfilePage() {
           <ProfileField label="First Name" name="first_name" value={formData.first_name} editable={editing} onChange={handleChange} />
           <ProfileField label="Last Name" name="last_name" value={formData.last_name} editable={editing} onChange={handleChange} />
           <ProfileRow label="Joined" value={user?.date_joined ? new Date(user.date_joined).toLocaleDateString() : "N/A"} />
+          <ProfileField 
+            label="Phone Number" 
+            name="phone_number" 
+            value={formData.phone_number} 
+            editable={editing} 
+            onChange={handleChange} 
+          />
         </div>
 
         {/* Buttons */}

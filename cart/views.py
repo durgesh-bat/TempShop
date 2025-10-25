@@ -61,6 +61,41 @@ class CartView(APIView):
             return Response({"message": "Item removed from cart"}, status=status.HTTP_200_OK)
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+    
+    # âœ� PATCH: Update cart item quantity
+    def patch(self, request, product_id):
+        try:
+            # Validate product_id
+            try:
+                product_id = int(product_id)
+                if product_id <= 0:
+                    return Response({"error": "Invalid product ID"}, status=status.HTTP_400_BAD_REQUEST)
+            except (ValueError, TypeError):
+                return Response({"error": "Invalid product ID"}, status=status.HTTP_400_BAD_REQUEST)
+            
+            cart = get_object_or_404(Cart, user=request.user)
+            cart_item = get_object_or_404(CartItem, cart=cart, product__id=product_id)
+            
+            # Validate quantity parameter
+            try:
+                new_quantity = int(request.data.get("quantity", cart_item.quantity))
+                if new_quantity < 0:
+                    return Response({"error": "Invalid quantity"}, status=status.HTTP_400_BAD_REQUEST)
+            except (ValueError, TypeError):
+                return Response({"error": "Invalid quantity"}, status=status.HTTP_400_BAD_REQUEST)
+            
+            if new_quantity < 1:
+                cart_item.delete()
+                return Response({"message": "Item removed from cart"}, status=status.HTTP_200_OK)
+            
+            cart_item.quantity = new_quantity
+            cart_item.save()
+            
+            serializer = CartSerializer(cart)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 
 

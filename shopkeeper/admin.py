@@ -30,10 +30,24 @@ class ShopkeeperAdmin(admin.ModelAdmin):
 
 @admin.register(ShopkeeperProduct)
 class ShopkeeperProductAdmin(admin.ModelAdmin):
-    list_display = ('name', 'shopkeeper', 'price', 'stock_quantity', 'is_available', 'created_at')
-    search_fields = ('name', 'shopkeeper__name', 'category')
-    list_filter = ('is_available', 'category', 'created_at')
-    readonly_fields = ('created_at', 'updated_at')
+    list_display = ('product_name', 'shopkeeper', 'product', 'stock_quantity', 'product_is_available', 'product_created_date')
+    search_fields = ('product__name', 'shopkeeper__name')
+    list_filter = ('product__is_available', 'product__created_date')
+
+    def product_name(self, obj):
+        return obj.product.name
+    product_name.short_description = "Product Name"
+
+    def product_is_available(self, obj):
+        return obj.product.is_available
+    product_is_available.short_description = "Available"
+    product_is_available.boolean = True
+
+    def product_created_date(self, obj):
+        return obj.product.created_date
+    product_created_date.short_description = "Product Created"
+
+
 
 @admin.register(ShopkeeperOrder)
 class ShopkeeperOrderAdmin(admin.ModelAdmin):

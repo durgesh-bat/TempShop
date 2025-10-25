@@ -65,8 +65,7 @@ class ShopkeeperProductSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ShopkeeperProduct
-        fields = ['id', 'shopkeeper', 'shopkeeper_name', 'name', 'description', 'price', 
-                 'stock_quantity', 'image', 'category', 'is_available', 'created_at', 'updated_at']
+        fields = ['id', 'shopkeeper', 'shopkeeper_name', 'product','stock_quantity']
 
 class ShopkeeperOrderSerializer(serializers.ModelSerializer):
     shopkeeper_name = serializers.CharField(source='shopkeeper.name', read_only=True)

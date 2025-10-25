@@ -1,92 +1,163 @@
-import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState } from "react";
+import { useNavigate, Link } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { register } from "../slices/authSlice";
 
 export default function Register() {
-  const [form, setForm] = useState({ 
-    username: "", 
-    email: "", 
-    password: "",
-    password2: "" 
-  });
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const { error, isAuthenticated } = useSelector((state) => state.auth);
+  
+  const { loading, error, isAuthenticated } = useSelector(state => state.auth);
+  const [formData, setFormData] = useState({
+    username: "",
+    email: "",
+    password: "",
+    password2: ""
+  });
 
-  useEffect(() => {
-    if (isAuthenticated) {
-      navigate("/");
-    }
-  }, [isAuthenticated, navigate]);
-
-  const handleChange = (e) =>
-    setForm({ ...form, [e.target.name]: e.target.value });
+  // If already authenticated, redirect
+  if (isAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-black px-6">
+        <div className="bg-white dark:bg-gray-900 shadow-2xl rounded-3xl p-8 w-full max-w-md text-center">
+          <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-4">
+            ✅ Already Logged In
+          </h2>
+          <p className="text-gray-600 dark:text-gray-400 mb-6">
+            You already have an account.
+          </p>
+          <button
+            onClick={() => navigate("/profile")}
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-semibold transition"
+          >
+            Go to Profile
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (form.password !== form.password2) {
-      alert("Passwords don't match!");
+    
+    if (formData.password !== formData.password2) {
+      alert("Passwords do not match!");
       return;
     }
-    
+
     try {
-      await dispatch(register(form)).unwrap();
+      await dispatch(register({
+        username: formData.username,
+        email: formData.email,
+        password: formData.password,
+        password2: formData.password2
+      })).unwrap();
+      
+      // Redirect to profile after successful registration
+      navigate("/profile", { replace: true });
     } catch (err) {
-      // Error is handled by the slice
-      console.error('Registration failed:', err);
+      console.error("Registration failed:", err);
     }
   };
 
+  const handleChange = (e) => {
+    setFormData({ 
+      ...formData, 
+      [e.target.name]: e.target.value 
+    });
+  };
+
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900">
-      <div className="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-md w-96">
-        <h2 className="text-2xl font-bold mb-6 text-center">Create Account</h2>
-        {error && <p className="text-red-500 text-center mb-4">{error}</p>}
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-black px-6 py-12">
+      <div className="bg-white dark:bg-gray-900 shadow-2xl rounded-3xl p-8 w-full max-w-md">
+        <h2 className="text-3xl font-bold text-center mb-6 text-gray-800 dark:text-white">
+          Create Account
+        </h2>
+
+        {error && (
+          <div className="bg-red-100 dark:bg-red-900/30 border border-red-400 text-red-700 dark:text-red-400 px-4 py-3 rounded-lg mb-4">
+            {error}
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-4">
-          <input
-            name="username"
-            placeholder="Username"
-            value={form.username}
-            onChange={handleChange}
-            className="w-full px-4 py-2 border rounded-lg bg-gray-100 dark:bg-gray-700"
-          />
-          <input
-            name="email"
-            type="email"
-            placeholder="Email"
-            value={form.email}
-            onChange={handleChange}
-            className="w-full px-4 py-2 border rounded-lg bg-gray-100 dark:bg-gray-700"
-          />
-          <input
-            name="password"
-            type="password"
-            placeholder="Password"
-            value={form.password}
-            onChange={handleChange}
-            className="w-full px-4 py-2 border rounded-lg bg-gray-100 dark:bg-gray-700"
-          />
-          <input
-            name="password2"
-            type="password"
-            placeholder="Confirm Password"
-            value={form.password2}
-            onChange={handleChange}
-            className="w-full px-4 py-2 border rounded-lg bg-gray-100 dark:bg-gray-700"
-          />
+          <div>
+            <label className="block text-gray-700 dark:text-gray-300 mb-2 font-medium">
+              Username
+            </label>
+            <input
+              type="text"
+              name="username"
+              value={formData.username}
+              onChange={handleChange}
+              className="w-full px-4 py-3 border border-gray-300 dark:border-gray-700 rounded-lg dark:bg-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-gray-700 dark:text-gray-300 mb-2 font-medium">
+              Email
+            </label>
+            <input
+              type="email"
+              name="email"
+              value={formData.email}
+              onChange={handleChange}
+              className="w-full px-4 py-3 border border-gray-300 dark:border-gray-700 rounded-lg dark:bg-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-gray-700 dark:text-gray-300 mb-2 font-medium">
+              Password
+            </label>
+            <input
+              type="password"
+              name="password"
+              value={formData.password}
+              onChange={handleChange}
+              className="w-full px-4 py-3 border border-gray-300 dark:border-gray-700 rounded-lg dark:bg-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-gray-700 dark:text-gray-300 mb-2 font-medium">
+              Confirm Password
+            </label>
+            <input
+              type="password"
+              name="password2"
+              value={formData.password2}
+              onChange={handleChange}
+              className="w-full px-4 py-3 border border-gray-300 dark:border-gray-700 rounded-lg dark:bg-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition"
+              required
+            />
+          </div>
+
           <button
             type="submit"
-            className="w-full bg-black text-white py-2 rounded-lg hover:scale-105 transition"
+            disabled={loading}
+            className={`w-full py-3 rounded-lg font-semibold transition ${
+              loading
+                ? "bg-gray-400 cursor-not-allowed"
+                : "bg-blue-600 hover:bg-blue-700 text-white"
+            }`}
           >
-            Register
+            {loading ? "Creating Account..." : "Register"}
           </button>
         </form>
-        <p className="text-center text-gray-600 dark:text-gray-400 mt-4">
+
+        <p className="text-center text-gray-600 dark:text-gray-400 mt-6">
           Already have an account?{" "}
-          <a href="/login" className="text-blue-500 hover:underline">
-            Login
-          </a>
+          <Link 
+            to="/login" 
+            className="text-blue-600 dark:text-blue-400 hover:underline font-semibold"
+          >
+            Login here
+          </Link>
         </p>
       </div>
     </div>
