@@ -5,6 +5,8 @@ from datetime import timedelta
 import cloudinary
 import cloudinary.uploader
 import cloudinary.api
+import psycopg2
+
 
 load_dotenv()
 
@@ -30,10 +32,8 @@ STATICFILES_STORAGE = 'cloudinary_storage.storage.StaticCloudinaryStorage'
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv('SECRET_KEY')
 
-# SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
 ALLOWED_HOSTS = ['localhost','127.0.0.1']
@@ -59,7 +59,6 @@ INSTALLED_APPS = [
     'corsheaders',
     'account',
     'rest_framework_simplejwt',
-    'rest_framework_simplejwt.token_blacklist',
     'cart',
     'shopkeeper',
 ]
@@ -81,7 +80,7 @@ ROOT_URLCONF = 'server.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -112,6 +111,7 @@ for var in required_db_vars:
     if not os.getenv(var):
         raise ValueError(f"Required environment variable {var} is not set")
 
+
 DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.mysql',
@@ -122,6 +122,18 @@ DATABASES = {
             'PORT': '3306',       # Default MySQL port
         }
     }
+
+# DATABASES = {
+#         'default': {
+#             'ENGINE': 'django.db.backends.postgresql',
+#             'NAME': os.getenv('PSQL_DB'),
+#             'USER': os.getenv('PSQL_USER'),
+#             'PASSWORD': os.getenv('PSQL_PASSWORD'),
+#             'HOST': os.getenv('PSQL_HOST'),  # Or the IP address/hostname of your MySQL server
+#             'PORT': os.getenv('PSQL_PORT'),       # Default MySQL port
+#         }
+# }
+
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
@@ -165,6 +177,9 @@ MEDIA_URL = '/media/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+# Custom User Model
+AUTH_USER_MODEL = 'account.Client'
+
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework_simplejwt.authentication.JWTAuthentication',
@@ -172,22 +187,24 @@ REST_FRAMEWORK = {
 }
 
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30),
-    "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
+    "ACCESS_TOKEN_LIFETIME": timedelta(hours=1),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
     "ROTATE_REFRESH_TOKENS": False,
-    "BLACKLIST_AFTER_ROTATION": True,
-
+    "BLACKLIST_AFTER_ROTATION": False,
     "ALGORITHM": "HS256",
-    "SIGNING_KEY": os.getenv("SECRET_KEY"),  # Make sure SECRET_KEY is set in .env
-    "VERIFYING_KEY": None,
-
+    "SIGNING_KEY": os.getenv("SECRET_KEY"),
     "AUTH_HEADER_TYPES": ("Bearer",),
-    "AUTH_HEADER_NAME": "HTTP_AUTHORIZATION",
     "USER_ID_FIELD": "id",
     "USER_ID_CLAIM": "user_id",
-
-    "AUTH_TOKEN_CLASSES": ("rest_framework_simplejwt.tokens.AccessToken",),
-    "TOKEN_TYPE_CLAIM": "token_type",
-
-    "JTI_CLAIM": "jti",
 }
+
+# Email Configuration (Brevo SMTP)
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = os.getenv('Brevo_SERVER')
+EMAIL_PORT = int(os.getenv('Brevo_Port', 587))
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = os.getenv('Brevo_Login')
+EMAIL_HOST_PASSWORD = os.getenv('Brevo_Password')
+DEFAULT_FROM_EMAIL = 'codeforge.code@gmail.com'  # Your verified sender email in Brevo
+SERVER_EMAIL = DEFAULT_FROM_EMAIL
+EMAIL_TIMEOUT = 10

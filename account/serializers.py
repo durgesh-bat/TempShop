@@ -1,15 +1,14 @@
 from rest_framework import serializers
-from django.contrib.auth.models import User
-from rest_framework_simplejwt.tokens import RefreshToken
-from .models import UserAccount
+from .models import Client, Address, Wallet, PaymentMethod, Order, OrderItem, Review, Wishlist
+from product.serializers import ProductSerializer
 
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=True, style={'input_type': 'password'})
     password2 = serializers.CharField(write_only=True, required=True, style={'input_type': 'password'})
 
     class Meta:
-        model = User
-        fields = ('username', 'email', 'password', 'password2')
+        model = Client
+        fields = ('username', 'email', 'password', 'password2', 'phone_number')
 
     def validate(self, data):
         if data['password'] != data['password2']:
@@ -18,41 +17,78 @@ class RegisterSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         validated_data.pop('password2')
-        user = User.objects.create_user(**validated_data)
+        user = Client.objects.create_user(**validated_data)
         return user
 
 
-class UserSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = User
-        fields = ["id", "username", "email", "first_name", "last_name", "date_joined"]
-
-class UserAccountSerializer(serializers.ModelSerializer):
+class ClientSerializer(serializers.ModelSerializer):
     profile_picture = serializers.ImageField(required=False, allow_null=True)
-    
-    username = serializers.CharField(source='user.username', required=False)
-    email = serializers.EmailField(source='user.email', required=False)
-    first_name = serializers.CharField(source='user.first_name', required=False)
-    last_name = serializers.CharField(source='user.last_name', required=False)
-    date_joined = serializers.DateTimeField(source='user.date_joined', read_only=True)
 
     class Meta:
-        model = UserAccount
+        model = Client
         fields = ['id', 'username', 'email', 'first_name', 'last_name', 
-                  'phone_number', 'profile_picture', 'date_joined']
-    
-    def update(self, instance, validated_data):
-        try:
-            # Handle profile picture upload
-            if 'profile_picture' in validated_data:
-                instance.profile_picture = validated_data['profile_picture']
-            if 'phone_number' in validated_data:
-                instance.phone_number = validated_data['phone_number']
-            instance.save()
-            return instance
-        except Exception as e:
-            raise serializers.ValidationError(f"Failed to update profile: {str(e)}")
+                  'phone_number', 'profile_picture', 'date_joined', 'is_email_verified']
+        read_only_fields = ['id', 'date_joined', 'is_email_verified']
+
 
 class LoginSerializer(serializers.Serializer):
     username = serializers.CharField()
     password = serializers.CharField(write_only=True)
+
+
+class AddressSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Address
+        fields = ['id', 'label', 'street', 'city', 'state', 'postal_code', 'country', 'is_default', 'created_at']
+        read_only_fields = ['id', 'created_at']
+
+
+class WalletSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Wallet
+        fields = ['id', 'balance', 'created_at']
+        read_only_fields = ['id', 'created_at']
+
+
+class PaymentMethodSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PaymentMethod
+        fields = ['id', 'card_type', 'last_four', 'expiry_month', 'expiry_year', 'is_default', 'created_at']
+        read_only_fields = ['id', 'created_at']
+
+
+class OrderItemSerializer(serializers.ModelSerializer):
+    product = ProductSerializer(read_only=True)
+
+    class Meta:
+        model = OrderItem
+        fields = ['id', 'product', 'quantity', 'price']
+
+
+class OrderSerializer(serializers.ModelSerializer):
+    items = OrderItemSerializer(many=True, read_only=True)
+    address = AddressSerializer(read_only=True)
+
+    class Meta:
+        model = Order
+        fields = ['id', 'address', 'total', 'status', 'items', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'created_at', 'updated_at']
+
+
+class ReviewSerializer(serializers.ModelSerializer):
+    user = ClientSerializer(read_only=True)
+    product = ProductSerializer(read_only=True)
+
+    class Meta:
+        model = Review
+        fields = ['id', 'user', 'product', 'rating', 'comment', 'created_at']
+        read_only_fields = ['id', 'user', 'created_at']
+
+
+class WishlistSerializer(serializers.ModelSerializer):
+    product = ProductSerializer(read_only=True)
+
+    class Meta:
+        model = Wishlist
+        fields = ['id', 'product', 'added_at']
+        read_only_fields = ['id', 'added_at']

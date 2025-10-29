@@ -3,8 +3,10 @@ from django.conf import settings
 from django.utils.deprecation import MiddlewareMixin
 from rest_framework_simplejwt.tokens import RefreshToken, AccessToken
 from rest_framework_simplejwt.exceptions import TokenError, InvalidToken
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.http import JsonResponse
+
+User = get_user_model()
 
 
 class JWTAuthMiddleware(MiddlewareMixin):

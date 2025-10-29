@@ -22,14 +22,14 @@ export const fetchProductDetails = createAsyncThunk(
 const initialState = {
   items: [],
   filteredItems: [],
+  displayedItems: [],
   selectedProduct: null,
   loading: false,
   error: null,
   searchQuery: '',
   selectedCategory: 'All',
   sortOrder: '',
-  currentPage: 1,       // 🔹 pagination: current page
-  itemsPerPage: 8,      // 🔹 items per page
+  itemsToShow: 8,
 };
 
 const productSlice = createSlice({
@@ -38,20 +38,24 @@ const productSlice = createSlice({
   reducers: {
     setSearchQuery: (state, action) => {
       state.searchQuery = action.payload;
-      state.currentPage = 1; // reset page when filter changes
+      state.itemsToShow = 8;
       state.filteredItems = filterProducts(state);
+      state.displayedItems = state.filteredItems.slice(0, state.itemsToShow);
     },
     setSelectedCategory: (state, action) => {
       state.selectedCategory = action.payload;
-      state.currentPage = 1;
+      state.itemsToShow = 8;
       state.filteredItems = filterProducts(state);
+      state.displayedItems = state.filteredItems.slice(0, state.itemsToShow);
     },
     setSortOrder: (state, action) => {
       state.sortOrder = action.payload;
       state.filteredItems = filterProducts(state);
+      state.displayedItems = state.filteredItems.slice(0, state.itemsToShow);
     },
-    setCurrentPage: (state, action) => {
-      state.currentPage = action.payload; // 🔹 set active page
+    loadMoreItems: (state) => {
+      state.itemsToShow += 8;
+      state.displayedItems = state.filteredItems.slice(0, state.itemsToShow);
     },
   },
   extraReducers: (builder) => {
@@ -69,14 +73,24 @@ const productSlice = createSlice({
         state.loading = false;
         state.items = sortByLatest(action.payload);
         state.filteredItems = filterProducts(state);
+        state.displayedItems = state.filteredItems.slice(0, state.itemsToShow);
       })
       .addCase(fetchProducts.rejected, (state, action) => {
         state.loading = false;
         state.error = action.error.message;
       })
       // Fetch product details
+      .addCase(fetchProductDetails.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
       .addCase(fetchProductDetails.fulfilled, (state, action) => {
+        state.loading = false;
         state.selectedProduct = action.payload;
+      })
+      .addCase(fetchProductDetails.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.error.message;
       });
   },
 });
@@ -87,9 +101,14 @@ const filterProducts = (state) => {
 
   // 🧩 Category filter
   if (state.selectedCategory !== 'All') {
-    filtered = filtered.filter(
-      (product) => product.category?.name === state.selectedCategory
-    );
+    filtered = filtered.filter((product) => {
+      // Handle both category ID and name comparison
+      if (typeof state.selectedCategory === 'string' && state.selectedCategory !== 'All') {
+        return product.category === state.selectedCategory || 
+               product.category?.toString() === state.selectedCategory;
+      }
+      return true;
+    });
   }
 
   // 🔍 Search filter
@@ -98,15 +117,16 @@ const filterProducts = (state) => {
     filtered = filtered.filter(
       (product) =>
         product.name.toLowerCase().includes(query) ||
-        product.description.toLowerCase().includes(query)
+        product.description.toLowerCase().includes(query) ||
+        product.category?.toLowerCase().includes(query)
     );
   }
 
   // ↕️ Sort filter
   if (state.sortOrder) {
     filtered.sort((a, b) => {
-      if (state.sortOrder === 'price-asc') return a.price - b.price;
-      if (state.sortOrder === 'price-desc') return b.price - a.price;
+      if (state.sortOrder === 'asc') return parseFloat(a.price) - parseFloat(b.price);
+      if (state.sortOrder === 'desc') return parseFloat(b.price) - parseFloat(a.price);
       return 0;
     });
   }
@@ -118,7 +138,7 @@ export const {
   setSearchQuery,
   setSelectedCategory,
   setSortOrder,
-  setCurrentPage,
+  loadMoreItems,
 } = productSlice.actions;
 
 export default productSlice.reducer;

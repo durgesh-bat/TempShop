@@ -33,3 +33,13 @@ export const updateProfile = async (profileData) => {
     throw new Error(errorMessage);
   }
 };
+
+export const sendOTP = async () => {
+  const res = await axiosInstance.post("/auth/send-otp/");
+  return res.data;
+};
+
+export const verifyOTP = async (otp) => {
+  const res = await axiosInstance.post("/auth/verify-otp/", { otp });
+  return res.data;
+};

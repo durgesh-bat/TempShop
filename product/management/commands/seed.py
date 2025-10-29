@@ -1,104 +1,142 @@
 import requests
 from django.core.management.base import BaseCommand
-from product.models import Product, Category
-import cloudinary
+from product.models import Product, Category, ProductImage
+from django.utils.text import slugify
 import cloudinary.uploader
 from dotenv import load_dotenv
 import os
 load_dotenv()
 
-# ✅ Configure Cloudinary here
 cloudinary.config(
-    cloud_name = os.getenv('CLOUD_NAME'),
-    api_key = os.getenv('API_KEY'),
-    api_secret = os.getenv('API_SECRET'),
-    secure = True
+    cloud_name=os.getenv('CLOUD_NAME'),
+    api_key=os.getenv('API_KEY'),
+    api_secret=os.getenv('API_SECRET'),
+    secure=True
 )
 
-def fetch_products_from_api(start, end):
-    """
-    Fetch products from start to end index (inclusive)
-    Example: fetch_products_from_api(1, 5) will fetch products with IDs 1,2,3,4,5
-    """
+def upload_to_cloudinary(image_url, folder, public_id):
+    """Upload image to Cloudinary and return public_id"""
     try:
-        for product_id in range(start, end + 1):
-            # Fetch single product
-            response = requests.get(f'https://dummyjson.com/products/{product_id}')
-            response.raise_for_status()
-            data = response.json()
-            
-            print(f"\nFetched Product {product_id}:")
-            print(data)  # Print the raw product data
-            
-            try:
-                # Upload image to Cloudinary
-                image_url = data.get('image')
-                uploaded_image_url = None
-
-                if image_url:
-                    try:
-                        # Add unique filename to prevent duplicates
-                        upload_result = cloudinary.uploader.upload(
-                            image_url,
-                            folder="products",
-                            public_id=f"product_{data['id']}",
-                            overwrite=True
-                        )
-                        uploaded_image_url = upload_result["public_id"]
-                    except Exception as e:
-                        print(f"❌ Failed to upload image for {data['title']}: {e}")
-
-                # Create or get category
-                category_name = data.get('category', 'Uncategorized')
-                category, _ = Category.objects.get_or_create(name=category_name)
-
-                # Get rating data
-                rating_data = data.get('rating', {})
-                rating = rating_data.get('rate', 0)
-                stock = rating_data.get('count', 0)
-
-                # Create or update product
-                product, created = Product.objects.update_or_create(
-                    name=data['title'],
-                    defaults={
-                        'price': data.get('price', 0),
-                        'description': data.get('description', ''),
-                        'category': category,
-                        'subcategory': None,
-                        'image': uploaded_image_url or data.get('image', ''),
-                        'rating': rating,
-                        'stock': stock,
-                        'latitude': data.get('latitude', 0.0),
-                        'longitude': data.get('longitude', 0.0)
-                    }
-                )
-
-                if created:
-                    print(f"✅ Created product: {product.name}")
-                    print(f"   Image: {product.image or 'No Image'}")
-                    print(f"   Rating: {rating}, Stock: {stock}")
-                else:
-                    print(f"📝 Updated product: {product.name}")
-
-            except Exception as e:
-                print(f"❌ Error processing product {data.get('title', 'Unknown')}: {e}")
-
-    except requests.RequestException as e:
-        print(f"❌ Error fetching products from API: {e}")
+        result = cloudinary.uploader.upload(
+            image_url,
+            folder=folder,
+            public_id=public_id,
+            overwrite=True,
+            transformation={
+                'quality': 'auto:good',
+                'fetch_format': 'auto',
+                'crop': 'limit',
+                'width': 1000,
+                'height': 1000
+            }
+        )
+        return result['public_id']
     except Exception as e:
-        print(f"❌ Unexpected error: {e}")
+        print(f"❌ Failed to upload image: {e}")
+        return None
 
+def seed_categories():
+    """Fetch and save categories with images"""
+    try:
+        response = requests.get('https://api.escuelajs.co/api/v1/categories')
+        response.raise_for_status()
+        categories = response.json()
+        
+        for cat in categories:
+            cat_slug = cat.get('slug') or slugify(cat.get('name', 'others'))
+            category = Category.objects.filter(slug=cat_slug).first()
+            
+            if category:
+                # Update only image
+                if cat.get('image'):
+                    cloudinary_id = upload_to_cloudinary(
+                        cat['image'],
+                        'categories',
+                        f"category_{cat_slug}"
+                    )
+                    if cloudinary_id:
+                        category.image = cloudinary_id
+                        category.save()
+                        print(f"✅ Updated category image: {category.name}")
+            else:
+                # Create new category
+                cat_image = None
+                if cat.get('image'):
+                    cat_image = upload_to_cloudinary(
+                        cat['image'],
+                        'categories',
+                        f"category_{cat_slug}"
+                    )
+                category = Category.objects.create(
+                    name=cat.get('name', 'Others'),
+                    slug=cat_slug,
+                    image=cat_image
+                )
+                print(f"✅ Created category: {category.name}")
+    except Exception as e:
+        print(f"❌ Error fetching categories: {e}")
+
+def seed_products():
+    """Fetch products from API"""
+    try:
+        response = requests.get('https://api.escuelajs.co/api/v1/products/')
+        response.raise_for_status()
+        products = response.json()
+        
+        for prod in products:
+            try:
+                # Skip if no images
+                if not prod.get('images') or len(prod['images']) == 0:
+                    continue
+                
+                slug = prod.get('slug') or slugify(prod['title'])
+                if Product.objects.filter(slug=slug).exists():
+                    continue
+                
+                # Get category by slug
+                cat_data = prod.get('category', {})
+                cat_slug = cat_data.get('slug') or slugify(cat_data.get('name', 'others'))
+                category = Category.objects.filter(slug=cat_slug).first()
+                
+                if not category:
+                    continue
+                
+                # Create product
+                product = Product.objects.create(
+                    name=prod['title'],
+                    slug=slug,
+                    price=prod['price'] * 83.0,
+                    description=prod.get('description', ''),
+                    category=category
+                )
+                
+                # Create product images
+                for i, img_url in enumerate(prod['images']):
+                    cloudinary_id = upload_to_cloudinary(
+                        img_url,
+                        'products',
+                        f"product_{slug}_img_{i}"
+                    )
+                    if cloudinary_id:
+                        ProductImage.objects.create(
+                            product=product,
+                            image=cloudinary_id,
+                            is_primary=(i == 0),
+                            order=i
+                        )
+                
+                print(f"✅ Created: {product.name}")
+            except Exception as e:
+                print(f"❌ Error: {e}")
+    except Exception as e:
+        print(f"❌ Error fetching products: {e}")
 
 class Command(BaseCommand):
-    help = 'Seed the database with products from an external API'
-
-    def add_arguments(self, parser):
-        parser.add_argument('--start', type=int, default=1, help='Starting product ID')
-        parser.add_argument('--end', type=int, default=5, help='Ending product ID')
-
+    help = 'Seed database with products'
+    
     def handle(self, *args, **kwargs):
-        start = kwargs['start']
-        end = kwargs['end']
-        self.stdout.write(f'🔄 Fetching products from ID {start} to {end}...')
-        fetch_products_from_api(start, end)
-        self.stdout.write(self.style.SUCCESS('🎉 Successfully seeded the database with products'))
+        self.stdout.write('🔄 Seeding categories...')
+        seed_categories()
+        self.stdout.write('🔄 Seeding products...')
+        seed_products()
+        self.stdout.write(self.style.SUCCESS('🎉 Database seeded successfully'))

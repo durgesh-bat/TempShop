@@ -48,6 +48,25 @@ export const loginShopkeeper = createAsyncThunk(
   }
 );
 
+export const verifyShopkeeperToken = createAsyncThunk(
+  'shopkeeper/verifyToken',
+  async (_, { rejectWithValue }) => {
+    try {
+      const token = localStorage.getItem('shopkeeper_access_token');
+      if (!token) {
+        return rejectWithValue({ message: 'No token found' });
+      }
+      const data = await getShopkeeperProfile();
+      return data;
+    } catch (err) {
+      localStorage.removeItem('shopkeeper_access_token');
+      localStorage.removeItem('shopkeeper_refresh_token');
+      const message = err?.response?.data?.detail || err?.response?.data || err.message || 'Token verification failed';
+      return rejectWithValue({ message });
+    }
+  }
+);
+
 export const fetchShopkeeperProfile = createAsyncThunk(
   'shopkeeper/fetchProfile',
   async (_, { rejectWithValue }) => {
@@ -228,6 +247,23 @@ const shopkeeperSlice = createSlice({
       .addCase(loginShopkeeper.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload?.message || 'Login failed';
+      });
+
+    // Verify Token
+    builder
+      .addCase(verifyShopkeeperToken.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(verifyShopkeeperToken.fulfilled, (state, action) => {
+        state.loading = false;
+        state.isAuthenticated = true;
+        state.shopkeeper = action.payload;
+      })
+      .addCase(verifyShopkeeperToken.rejected, (state, action) => {
+        state.loading = false;
+        state.isAuthenticated = false;
+        state.shopkeeper = null;
       });
 
     // Fetch Profile

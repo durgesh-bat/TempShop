@@ -1,11 +1,15 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import axiosInstance from '../api/axiosInstance';
+import { cacheManager, CACHE_KEYS } from '../utils/cacheManager';
 
-// Async thunk for fetching categories
 export const fetchCategories = createAsyncThunk(
   'categories/fetchAll',
   async () => {
+    const cached = cacheManager.get(CACHE_KEYS.CATEGORIES);
+    if (cached) return cached;
+
     const response = await axiosInstance.get('/categories/');
+    cacheManager.set(CACHE_KEYS.CATEGORIES, response.data);
     return response.data;
   }
 );

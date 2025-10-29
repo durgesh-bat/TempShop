@@ -1,22 +1,13 @@
 from rest_framework import serializers
-from django.contrib.auth.models import User
-from rest_framework_simplejwt.tokens import RefreshToken
 from .models import Shopkeeper, ShopkeeperProduct, ShopkeeperOrder, ShopkeeperDocument, ShopkeeperReview
-
-class UserSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = User
-        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'date_joined']
 
 class ShopkeeperRegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=True, style={'input_type': 'password'})
     password2 = serializers.CharField(write_only=True, required=True, style={'input_type': 'password'})
-    username = serializers.CharField(write_only=True, required=True)
-    email = serializers.EmailField(write_only=True, required=True)
 
     class Meta:
         model = Shopkeeper
-        fields = ['username', 'email', 'password', 'password2', 'name', 'phone_number', 'address', 'business_name', 'business_type']
+        fields = ['username', 'email', 'password', 'password2', 'phone_number', 'address', 'business_name', 'business_type']
 
     def validate(self, data):
         if data['password'] != data['password2']:
@@ -24,25 +15,13 @@ class ShopkeeperRegisterSerializer(serializers.ModelSerializer):
         return data
 
     def create(self, validated_data):
-        # Create User account
-        user_data = {
-            'username': validated_data['username'],
-            'email': validated_data['email'],
-            'password': validated_data['password']
-        }
-        user = User.objects.create_user(**user_data)
-        
-        # Create Shopkeeper profile
-        shopkeeper_data = {
-            'user': user,
-            'name': validated_data['name'],
-            'phone_number': validated_data.get('phone_number'),
-            'address': validated_data.get('address'),
-            'business_name': validated_data.get('business_name'),
-            'business_type': validated_data.get('business_type'),
-            'email': validated_data['email']
-        }
-        shopkeeper = Shopkeeper.objects.create(**shopkeeper_data)
+        validated_data.pop('password2')
+        password = validated_data.pop('password')
+        shopkeeper = Shopkeeper.objects.create_user(
+            password=password,
+            is_staff=True,
+            **validated_data
+        )
         return shopkeeper
 
 class ShopkeeperLoginSerializer(serializers.Serializer):
@@ -50,25 +29,30 @@ class ShopkeeperLoginSerializer(serializers.Serializer):
     password = serializers.CharField(write_only=True)
 
 class ShopkeeperSerializer(serializers.ModelSerializer):
-    user = UserSerializer(read_only=True)
     profile_picture = serializers.ImageField(required=False, allow_null=True)
 
     class Meta:
         model = Shopkeeper
-        fields = ['id', 'user', 'name', 'email', 'phone_number', 'alternate_phone_number', 
-                 'address', 'profile_picture', 'longitude', 'latitude', 'is_active', 
-                 'is_verified', 'business_name', 'business_type', 'created_at', 'updated_at']
+        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'phone_number', 'alternate_phone_number', 
+                 'address', 'profile_picture', 'longitude', 'latitude', 'is_active', 'is_staff',
+                 'is_verified', 'business_name', 'business_type', 'date_joined']
 
 class ShopkeeperProductSerializer(serializers.ModelSerializer):
-    shopkeeper_name = serializers.CharField(source='shopkeeper.name', read_only=True)
-    image = serializers.ImageField(required=False, allow_null=True)
+    shopkeeper_name = serializers.CharField(source='shopkeeper.username', read_only=True)
+    name = serializers.CharField(source='product.name', read_only=True)
+    price = serializers.DecimalField(source='product.price', max_digits=10, decimal_places=2, read_only=True)
+    description = serializers.CharField(source='product.description', read_only=True)
+    category = serializers.CharField(source='product.category.name', read_only=True)
+    image = serializers.ImageField(source='product.images.first.image', read_only=True)
+    is_available = serializers.BooleanField(source='product.is_available', read_only=True)
 
     class Meta:
         model = ShopkeeperProduct
-        fields = ['id', 'shopkeeper', 'shopkeeper_name', 'product','stock_quantity']
+        fields = ['id', 'shopkeeper', 'shopkeeper_name', 'product', 'name', 'price', 'description', 'category', 'stock_quantity', 'image', 'is_available']
+        read_only_fields = ['shopkeeper']
 
 class ShopkeeperOrderSerializer(serializers.ModelSerializer):
-    shopkeeper_name = serializers.CharField(source='shopkeeper.name', read_only=True)
+    shopkeeper_name = serializers.CharField(source='shopkeeper.username', read_only=True)
 
     class Meta:
         model = ShopkeeperOrder

@@ -25,4 +25,13 @@ urlpatterns = [
     
     # Dashboard
     path('dashboard/', views.shopkeeper_dashboard, name='shopkeeper-dashboard'),
+    
+    # Inventory Management
+    path('inventory/', views.inventory_overview, name='inventory-overview'),
+    path('inventory/<uuid:product_id>/stock/', views.update_stock, name='update-stock'),
+    path('inventory/<uuid:product_id>/toggle/', views.toggle_availability, name='toggle-availability'),
+    
+    # Payment & Analytics
+    path('payments/', views.payment_history, name='payment-history'),
+    path('analytics/', views.product_analytics, name='product-analytics'),
 ]

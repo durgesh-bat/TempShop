@@ -1,17 +1,25 @@
 from django.db import models
-import uuid
-import cloudinary
-import cloudinary.uploader
 from cloudinary.models import CloudinaryField
 
-def product_image_upload_path(instance, filename):
-    return f"products/{instance.id}/{filename}"
-
-
 class Category(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=100, unique=True)
-
+    slug = models.SlugField(max_length=120, unique=True)
+    image = CloudinaryField(
+        'image',
+        folder='categories',
+        transformation={
+            'quality': 'auto:good',
+            'fetch_format': 'auto',
+            'crop': 'limit',
+            'width': 1000,
+            'height': 1000
+        },
+        format='jpg',
+        blank=True,
+        null=True
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    
     class Meta:
         verbose_name_plural = "Categories"
         ordering = ['name']
@@ -20,31 +28,23 @@ class Category(models.Model):
         return self.name
 
 
-class SubCategory(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    category = models.ForeignKey(
-        Category,
-        on_delete=models.CASCADE,
-        related_name='subcategories'
-    )
+class Product(models.Model):
     name = models.CharField(max_length=100)
-
-    class Meta:
-        unique_together = ('category', 'name')
-        ordering = ['name']
+    slug = models.SlugField(max_length=120, unique=True)
+    category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, related_name='products')
+    price = models.DecimalField(max_digits=10, decimal_places=2)
+    description = models.TextField()
+    rating = models.FloatField(default=0.0)
+    is_available = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"{self.name} ({self.category.name})"
+        return self.name
 
 
-
-class Product(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    name = models.CharField(max_length=100)
-    category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True)
-    subcategory = models.ForeignKey(SubCategory, on_delete=models.SET_NULL, null=True, blank=True)
-    created_date = models.DateTimeField(auto_now_add=True)
-    modified_date = models.DateTimeField(auto_now=True)
+class ProductImage(models.Model):
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='images')
     image = CloudinaryField(
         'image',
         folder='products',
@@ -57,13 +57,11 @@ class Product(models.Model):
         },
         format='jpg'
     )
-    price = models.DecimalField(max_digits=10, decimal_places=2)
-    description = models.TextField()
-
-    latitude = models.FloatField(null=True, blank=True)
-    longitude = models.FloatField(null=True, blank=True)
-
-    rating = models.FloatField(default=0.0)
-    is_available = models.BooleanField(default=True)
+    is_primary = models.BooleanField(default=False)
+    order = models.PositiveIntegerField(default=0)
+    
+    class Meta:
+        ordering = ['order', 'id']
+        
     def __str__(self):
-        return self.name
+        return f"{self.product.name} - Image {self.order}"

@@ -1,6 +1,21 @@
 @import "tailwindcss";
 @layer components {
   .nav-link {
-    @apply text-gray-800 dark:text-gray-200 hover:underline transition;
+    @apply text-gray-800 dark:text-gray-200 hover:underline transition cursor-pointer;
   }
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+a, button, [role="button"], .cursor-pointer {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
 }

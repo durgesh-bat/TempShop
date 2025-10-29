@@ -9,6 +9,9 @@ import ProductPage from "./pages/Product";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import ProfilePage from "./pages/ProfilePage";
+import UserProfile from "./pages/UserProfile";
+import VerifyEmail from "./pages/VerifyEmail";
+import VerifyOTP from "./pages/VerifyOTP";
 import ProtectedRoute from "./components/ProtectedRoute";
 import CartPage from "./pages/CartPage";
 import ShopPage from "./pages/ShopPage";
@@ -20,6 +23,12 @@ import AddProduct from "./shopkipper/AddProduct";
 import ShopkeeperHome from "./shopkipper/ShopkeeperHome";
 import ShopkeeperLogin from "./shopkipper/Login";
 import ShopkeeperRegister from "./shopkipper/Register";
+import ShopkeeperLayout from "./shopkipper/ShopkeeperLayout";
+import ShopkeeperLanding from "./shopkipper/ShopkeeperLanding";
+import Inventory from "./shopkipper/Inventory";
+import Payments from "./shopkipper/Payments";
+import Analytics from "./shopkipper/Analytics";
+import ManageProducts from "./shopkipper/ManageProducts";
 
 // Wrapper for auth routes to prevent redirect loops
 function AuthRoute({ children }) {
@@ -139,6 +148,22 @@ function AppWrapper() {
           </Layout>
         }
       />
+      <Route
+        path="/verify-email/:token"
+        element={
+          <Layout>
+            <VerifyEmail />
+          </Layout>
+        }
+      />
+      <Route
+        path="/verify-otp"
+        element={
+          <Layout>
+            <VerifyOTP />
+          </Layout>
+        }
+      />
       
       {/* 🔒 Protected Routes */}
       <Route
@@ -147,6 +172,16 @@ function AppWrapper() {
           <ProtectedRoute>
             <Layout>
               <ProfilePage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/user-profile"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <UserProfile />
             </Layout>
           </ProtectedRoute>
         }
@@ -162,41 +197,77 @@ function AppWrapper() {
         } 
       />
       
-      {/* 🔒 Shopkeeper Routes */}
+      {/* 🔒 Shopkeeper Routes - Separate Environment */}
+      <Route
+        path="/shopkeeper"
+        element={
+          <ShopkeeperLayout>
+            <ShopkeeperLanding />
+          </ShopkeeperLayout>
+        }
+      />
       <Route
         path="/shopkeeper/login"
         element={
-          <Layout>
+          <ShopkeeperLayout>
             <ShopkeeperLogin />
-          </Layout>
+          </ShopkeeperLayout>
         }
       />
       <Route
         path="/shopkeeper/register"
         element={
-          <Layout>
+          <ShopkeeperLayout>
             <ShopkeeperRegister />
-          </Layout>
+          </ShopkeeperLayout>
         }
       />
       <Route
-        path="/add-product"
+        path="/shopkeeper/add-product"
         element={
-          <ProtectedRoute>
-            <Layout>
-              <AddProduct />
-            </Layout>
-          </ProtectedRoute>
+          <ShopkeeperLayout>
+            <AddProduct />
+          </ShopkeeperLayout>
         }
       />
       <Route
-        path="/shopkeeper"
+        path="/shopkeeper/dashboard"
         element={
-          <ProtectedRoute>
-            <Layout>
-              <ShopkeeperHome />
-            </Layout>
-          </ProtectedRoute>
+          <ShopkeeperLayout>
+            <ShopkeeperHome />
+          </ShopkeeperLayout>
+        }
+      />
+      <Route
+        path="/shopkeeper/inventory"
+        element={
+          <ShopkeeperLayout>
+            <Inventory />
+          </ShopkeeperLayout>
+        }
+      />
+      <Route
+        path="/shopkeeper/payments"
+        element={
+          <ShopkeeperLayout>
+            <Payments />
+          </ShopkeeperLayout>
+        }
+      />
+      <Route
+        path="/shopkeeper/analytics"
+        element={
+          <ShopkeeperLayout>
+            <Analytics />
+          </ShopkeeperLayout>
+        }
+      />
+      <Route
+        path="/shopkeeper/products"
+        element={
+          <ShopkeeperLayout>
+            <ManageProducts />
+          </ShopkeeperLayout>
         }
       />
     </Routes>

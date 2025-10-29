@@ -126,6 +126,7 @@ const authSlice = createSlice({
         state.isAuthenticated = true; 
         // ✅ Backend returns { user: {...}, tokens: {...} }
         state.user = action.payload.user || action.payload;
+        state.emailVerified = action.payload.email_verified !== false;
         console.log('Login user set:', state.user);
       })
       .addCase(login.rejected, (state, action) => { 

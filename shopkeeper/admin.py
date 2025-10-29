@@ -5,13 +5,16 @@ from .models import Shopkeeper, ShopkeeperProduct, ShopkeeperOrder, ShopkeeperDo
 
 @admin.register(Shopkeeper)
 class ShopkeeperAdmin(admin.ModelAdmin):
-    list_display = ('name', 'email', 'phone_number', 'business_name', 'is_active', 'is_verified', 'created_at')
-    search_fields = ('name', 'email', 'phone_number', 'business_name')
-    list_filter = ('is_active', 'is_verified', 'business_type', 'created_at')
-    readonly_fields = ('created_at', 'updated_at')
+    list_display = ('username', 'email', 'phone_number', 'business_name', 'is_active', 'is_verified', 'is_staff', 'date_joined')
+    search_fields = ('username', 'email', 'phone_number', 'business_name')
+    list_filter = ('is_active', 'is_verified', 'is_staff', 'business_type', 'date_joined')
+    readonly_fields = ('date_joined', 'last_login')
     fieldsets = (
-        ('Basic Information', {
-            'fields': ('user', 'name', 'email', 'phone_number', 'alternate_phone_number')
+        ('Account Information', {
+            'fields': ('username', 'password', 'email')
+        }),
+        ('Personal Information', {
+            'fields': ('first_name', 'last_name', 'phone_number', 'alternate_phone_number', 'profile_picture')
         }),
         ('Business Information', {
             'fields': ('business_name', 'business_type', 'address')
@@ -19,11 +22,11 @@ class ShopkeeperAdmin(admin.ModelAdmin):
         ('Location', {
             'fields': ('latitude', 'longitude')
         }),
-        ('Status', {
-            'fields': ('is_active', 'is_verified')
+        ('Permissions', {
+            'fields': ('is_active', 'is_staff', 'is_superuser', 'is_verified')
         }),
         ('Timestamps', {
-            'fields': ('created_at', 'updated_at'),
+            'fields': ('date_joined', 'last_login'),
             'classes': ('collapse',)
         })
     )
@@ -31,8 +34,8 @@ class ShopkeeperAdmin(admin.ModelAdmin):
 @admin.register(ShopkeeperProduct)
 class ShopkeeperProductAdmin(admin.ModelAdmin):
     list_display = ('product_name', 'shopkeeper', 'product', 'stock_quantity', 'product_is_available', 'product_created_date')
-    search_fields = ('product__name', 'shopkeeper__name')
-    list_filter = ('product__is_available', 'product__created_date')
+    search_fields = ('product__name', 'shopkeeper__username')
+    list_filter = ('product__is_available', 'product__created_at')
 
     def product_name(self, obj):
         return obj.product.name
@@ -44,7 +47,7 @@ class ShopkeeperProductAdmin(admin.ModelAdmin):
     product_is_available.boolean = True
 
     def product_created_date(self, obj):
-        return obj.product.created_date
+        return obj.product.created_at
     product_created_date.short_description = "Product Created"
 
 

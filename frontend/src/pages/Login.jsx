@@ -49,9 +49,13 @@ export default function Login() {
     }
     
     try {
-      await dispatch(login(credentials)).unwrap();
-      // Redirect to intended page after successful login
-      navigate(redirectPath, { replace: true });
+      const result = await dispatch(login(credentials)).unwrap();
+      // Check if email verification is needed
+      if (result.email_verified === false) {
+        navigate("/verify-otp", { replace: true });
+      } else {
+        navigate(redirectPath, { replace: true });
+      }
     } catch (err) {
       console.error("Login failed:", err);
       // Error is already handled by the slice and displayed in UI

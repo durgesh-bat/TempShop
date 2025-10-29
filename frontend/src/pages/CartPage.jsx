@@ -2,6 +2,7 @@ import React, { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Link } from "react-router-dom";
 import { fetchCart, updateCartItem, removeCartItem } from "../slices/cartSlice";
+import { showToast } from "../utils/toast";
 
 export default function CartPage() {
   const dispatch = useDispatch();
@@ -24,14 +25,14 @@ export default function CartPage() {
     } catch (err) {
       console.error('Failed to update quantity:', err);
       const errorMessage = err?.message || err?.error || "Failed to update quantity";
-      alert(errorMessage);
+      showToast.error(errorMessage);
     }
   };
 
   // Remove item
   const removeItem = async (productId) => {
     if (operationLoading) return;
-    if (!confirm('Are you sure you want to remove this item from your cart?')) {
+    if (!window.confirm('Are you sure you want to remove this item from your cart?')) {
       return;
     }
     try {
@@ -40,14 +41,49 @@ export default function CartPage() {
     } catch (err) {
       console.error('Failed to remove item:', err);
       const errorMessage = err?.message || err?.error || "Failed to remove item";
-      alert(errorMessage);
+      showToast.error(errorMessage);
     }
   };
 
+  // Cart Item Skeleton Component
+  const CartItemSkeleton = () => (
+    <div className="flex flex-col sm:flex-row justify-between items-center border-b border-gray-300 dark:border-gray-700 py-4 animate-pulse">
+      <div className="flex items-center gap-4 w-full sm:w-auto">
+        <div className="w-20 h-20 bg-gray-300 dark:bg-gray-700 rounded-lg"></div>
+        <div className="space-y-2">
+          <div className="h-4 bg-gray-300 dark:bg-gray-700 rounded w-32"></div>
+          <div className="h-3 bg-gray-300 dark:bg-gray-700 rounded w-20"></div>
+        </div>
+      </div>
+      <div className="flex items-center gap-3 mt-3 sm:mt-0">
+        <div className="w-8 h-8 bg-gray-300 dark:bg-gray-700 rounded"></div>
+        <div className="w-6 h-4 bg-gray-300 dark:bg-gray-700 rounded"></div>
+        <div className="w-8 h-8 bg-gray-300 dark:bg-gray-700 rounded"></div>
+      </div>
+      <div className="flex flex-col items-center mt-3 sm:mt-0 space-y-2">
+        <div className="h-4 bg-gray-300 dark:bg-gray-700 rounded w-16"></div>
+        <div className="h-3 bg-gray-300 dark:bg-gray-700 rounded w-12"></div>
+      </div>
+    </div>
+  );
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-black flex items-center justify-center">
-        <p className="text-gray-500 text-xl">Loading cart...</p>
+      <div className="min-h-screen bg-gray-50 dark:bg-black text-black dark:text-white px-6 py-10">
+        <h2 className="text-3xl font-bold text-center mb-8">🛒 Your Cart</h2>
+        
+        <div className="max-w-4xl mx-auto bg-white dark:bg-gray-900 shadow-lg rounded-2xl p-6">
+          {[...Array(3)].map((_, i) => <CartItemSkeleton key={i} />)}
+          
+          <div className="flex justify-between items-center mt-6 border-t pt-4">
+            <div className="h-6 bg-gray-300 dark:bg-gray-700 rounded w-16 animate-pulse"></div>
+            <div className="h-6 bg-gray-300 dark:bg-gray-700 rounded w-24 animate-pulse"></div>
+          </div>
+          
+          <div className="text-center mt-8">
+            <div className="h-12 bg-gray-300 dark:bg-gray-700 rounded-full w-48 mx-auto animate-pulse"></div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -90,9 +126,7 @@ export default function CartPage() {
 
       <div className="max-w-4xl mx-auto bg-white dark:bg-gray-900 shadow-lg rounded-2xl p-6">
         {items.map((item) => {
-          const imageUrl = item.product.image?.startsWith('http')
-            ? item.product.image
-            : `https://res.cloudinary.com/dq7zkxtnj/${item.product.image}`;
+          const imageUrl = item.product.primary_image || 'https://placehold.co/80x80?text=No+Image';
 
           return (
             <div
@@ -105,6 +139,7 @@ export default function CartPage() {
                   alt={item.product.name}
                   className="w-20 h-20 object-cover rounded-lg"
                   onError={(e) => e.target.src = 'https://placehold.co/80x80?text=No+Image'}
+                  loading="lazy"
                 />
                 <div>
                   <h3 className="font-semibold text-lg">{item.product.name}</h3>

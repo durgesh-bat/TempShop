@@ -1,38 +1,35 @@
 from rest_framework import serializers
-from .models import Product
-from rest_framework import serializers
-from .models import Category, SubCategory
+from .models import Product, Category, ProductImage
+
+class ProductImageSerializer(serializers.ModelSerializer):
+    image = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = ProductImage
+        fields = ['id', 'image', 'is_primary', 'order']
+    
+    def get_image(self, obj):
+        if obj.image:
+            return obj.image.url if hasattr(obj.image, 'url') else str(obj.image)
+        return None
 
 class ProductSerializer(serializers.ModelSerializer):
     category = serializers.StringRelatedField()
-    subcategory = serializers.StringRelatedField()
+    images = ProductImageSerializer(many=True, read_only=True)
 
     class Meta:
         model = Product
         fields = '__all__'
 
-
-
-class SubCategorySerializer(serializers.ModelSerializer):
-    category_name = serializers.CharField(source='category.name', read_only=True)
-
-    class Meta:
-        model = SubCategory
-        fields = ['id', 'name', 'category', 'category_name']
-        # category gives the UUID, category_name gives readable name
-
-
 class CategorySerializer(serializers.ModelSerializer):
+    image = serializers.SerializerMethodField()
+    
     class Meta:
         model = Category
-        fields = ['id', 'name']
-
-
-# ✅ Optional: For nested subcategories under each category
-class CategoryWithSubcategoriesSerializer(serializers.ModelSerializer):
-    subcategories = SubCategorySerializer(many=True, read_only=True)
-
-    class Meta:
-        model = Category
-        fields = ['id', 'name', 'subcategories']
+        fields = ['id', 'name', 'slug', 'image']
+    
+    def get_image(self, obj):
+        if obj.image:
+            return obj.image.url if hasattr(obj.image, 'url') else str(obj.image)
+        return None
 

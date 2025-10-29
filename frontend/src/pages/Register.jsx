@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { register } from "../slices/authSlice";
+import { showToast } from "../utils/toast";
 
 export default function Register() {
   const navigate = useNavigate();
@@ -41,17 +42,20 @@ export default function Register() {
     e.preventDefault();
     
     if (formData.password !== formData.password2) {
-      alert("Passwords do not match!");
+      showToast.error("Passwords do not match!");
       return;
     }
 
     try {
-      await dispatch(register({
+      const result = await dispatch(register({
         username: formData.username,
         email: formData.email,
         password: formData.password,
         password2: formData.password2
       })).unwrap();
+      
+      // Show verification message
+      showToast.success(result.message || "Registration successful! Please check your email to verify your account.");
       
       // Redirect to profile after successful registration
       navigate("/profile", { replace: true });

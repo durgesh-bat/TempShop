@@ -5,9 +5,19 @@ from product.models import Product
 
 class ProductSerializer(serializers.ModelSerializer):
     """Minimal product serializer for displaying product info in cart"""
+    primary_image = serializers.SerializerMethodField()
+    
     class Meta:
         model = Product
-        fields = ['id', 'name', 'price', 'image']
+        fields = ['id', 'name', 'price', 'primary_image']
+    
+    def get_primary_image(self, obj):
+        primary_img = obj.images.filter(is_primary=True).first()
+        if primary_img:
+            return primary_img.image.url if hasattr(primary_img.image, 'url') else str(primary_img.image)
+        elif obj.images.exists():
+            return obj.images.first().image.url if hasattr(obj.images.first().image, 'url') else str(obj.images.first().image)
+        return None
 
 
 class CartItemSerializer(serializers.ModelSerializer):
