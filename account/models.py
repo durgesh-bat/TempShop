@@ -99,6 +99,7 @@ class Order(models.Model):
 class OrderItem(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items')
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    shopkeeper = models.ForeignKey('shopkeeper.Shopkeeper', on_delete=models.SET_NULL, null=True, blank=True, related_name='order_items')
     quantity = models.PositiveIntegerField()
     price = models.DecimalField(max_digits=10, decimal_places=2)
 
@@ -143,3 +144,22 @@ class RecentlyViewed(models.Model):
 
     def __str__(self):
         return f"{self.user.username} - {self.product.name}"
+
+
+class RevokedToken(models.Model):
+    """Track revoked JWT tokens by JTI"""
+    jti = models.CharField(max_length=255, unique=True, db_index=True)
+    user = models.ForeignKey(Client, on_delete=models.CASCADE, related_name='revoked_tokens')
+    revoked_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    token_type = models.CharField(max_length=10, choices=[('access', 'Access'), ('refresh', 'Refresh')])
+
+    class Meta:
+        db_table = 'revoked_tokens'
+        indexes = [
+            models.Index(fields=['jti']),
+            models.Index(fields=['expires_at']),
+        ]
+
+    def __str__(self):
+        return f"{self.token_type} - {self.jti[:8]}..."

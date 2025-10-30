@@ -1,8 +1,8 @@
 import React, { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { fetchCart, updateCartItem, removeCartItem } from "../slices/cartSlice";
-import { showToast } from "../utils/toast";
+import notify from "../utils/notifications";
 
 export default function CartPage() {
   const dispatch = useDispatch();
@@ -22,26 +22,28 @@ export default function CartPage() {
     if (operationLoading) return;
     try {
       await dispatch(updateCartItem({ itemId: productId, newQty: delta })).unwrap();
+      notify.cart.updated();
     } catch (err) {
       console.error('Failed to update quantity:', err);
       const errorMessage = err?.message || err?.error || "Failed to update quantity";
-      showToast.error(errorMessage);
+      notify.cart.error(errorMessage);
     }
   };
 
   // Remove item
   const removeItem = async (productId) => {
     if (operationLoading) return;
+    const item = items.find(i => i.product.id === productId);
     if (!window.confirm('Are you sure you want to remove this item from your cart?')) {
       return;
     }
     try {
       await dispatch(removeCartItem({ itemId: productId })).unwrap();
-      // No need to refresh cart as removeCartItem already updates state optimistically
+      notify.cart.removed(item?.product?.name || "Item");
     } catch (err) {
       console.error('Failed to remove item:', err);
       const errorMessage = err?.message || err?.error || "Failed to remove item";
-      showToast.error(errorMessage);
+      notify.cart.error(errorMessage);
     }
   };
 
@@ -213,9 +215,11 @@ export default function CartPage() {
         </div>
 
         <div className="text-center mt-8">
-          <button className="bg-black dark:bg-white dark:text-black text-white px-8 py-3 rounded-full font-semibold hover:scale-105 transition">
-            Proceed to Checkout
-          </button>
+          <Link to="/checkout">
+            <button className="bg-black dark:bg-white dark:text-black text-white px-8 py-3 rounded-full font-semibold hover:scale-105 transition">
+              Proceed to Checkout
+            </button>
+          </Link>
         </div>
       </div>
     </div>

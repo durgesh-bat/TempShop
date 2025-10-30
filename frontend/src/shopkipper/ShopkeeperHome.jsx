@@ -335,7 +335,7 @@ export default function ShopkeeperHome() {
         </div>
 
         {/* Recent Orders */}
-        {dashboard?.recent_orders && dashboard.recent_orders.length > 0 && (
+        {dashboard?.recent_orders && dashboard.recent_orders.length > 0 ? (
           <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-bold text-gray-800">Recent Orders</h2>
@@ -344,7 +344,7 @@ export default function ShopkeeperHome() {
               </Link>
             </div>
             <div className="space-y-4">
-              {dashboard.recent_orders.slice(0, 5).map((order) => (
+              {dashboard.recent_orders.map((order) => (
                 <div key={order.id} className="flex justify-between items-center p-4 bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg hover:shadow-md transition border border-gray-200">
                   <div className="flex items-center space-x-4">
                     <div className="bg-purple-100 p-3 rounded-full">
@@ -354,20 +354,32 @@ export default function ShopkeeperHome() {
                     </div>
                     <div>
                       <p className="font-bold text-gray-800">{order.customer_name}</p>
-                      <p className="text-sm text-gray-600">₹{order.total_amount}</p>
+                      <p className="text-sm text-gray-600">{order.product_name}</p>
+                      <p className="text-sm text-gray-500">Qty: {order.quantity} × ₹{order.total / order.quantity}</p>
                     </div>
                   </div>
-                  <span className={`px-4 py-2 rounded-full text-sm font-semibold ${
-                    order.status === 'pending' ? 'bg-yellow-100 text-yellow-800 border border-yellow-300' :
-                    order.status === 'confirmed' ? 'bg-blue-100 text-blue-800 border border-blue-300' :
-                    order.status === 'delivered' ? 'bg-green-100 text-green-800 border border-green-300' :
-                    'bg-gray-100 text-gray-800 border border-gray-300'
-                  }`}>
-                    {order.status.toUpperCase()}
-                  </span>
+                  <div className="text-right">
+                    <p className="text-lg font-bold text-purple-600">₹{order.total}</p>
+                    <span className={`inline-block mt-1 px-3 py-1 rounded-full text-xs font-semibold ${
+                      order.status === 'pending' ? 'bg-yellow-100 text-yellow-800 border border-yellow-300' :
+                      order.status === 'processing' ? 'bg-blue-100 text-blue-800 border border-blue-300' :
+                      order.status === 'delivered' ? 'bg-green-100 text-green-800 border border-green-300' :
+                      'bg-gray-100 text-gray-800 border border-gray-300'
+                    }`}>
+                      {order.status.toUpperCase()}
+                    </span>
+                  </div>
                 </div>
               ))}
             </div>
+          </div>
+        ) : (
+          <div className="bg-white rounded-xl shadow-lg p-12 mb-8 text-center">
+            <svg className="w-20 h-20 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+            </svg>
+            <h3 className="text-xl font-bold text-gray-800 mb-2">No Orders Yet</h3>
+            <p className="text-gray-600">Customer orders will appear here once they purchase your products</p>
           </div>
         )}
 

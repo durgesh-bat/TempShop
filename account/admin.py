@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import Client, Address, Wallet, PaymentMethod, Order, OrderItem, Review, Wishlist
+from .models import Client, Address, Wallet, PaymentMethod, Order, OrderItem, Review, Wishlist, RevokedToken
 
 @admin.register(Client)
 class ClientAdmin(UserAdmin):
@@ -49,3 +49,14 @@ class ReviewAdmin(admin.ModelAdmin):
 class WishlistAdmin(admin.ModelAdmin):
     list_display = ('user', 'product', 'added_at')
     search_fields = ('user__username', 'product__name')
+
+@admin.register(RevokedToken)
+class RevokedTokenAdmin(admin.ModelAdmin):
+    list_display = ('jti_short', 'user', 'token_type', 'revoked_at', 'expires_at')
+    list_filter = ('token_type', 'revoked_at')
+    search_fields = ('user__username', 'jti')
+    readonly_fields = ('jti', 'user', 'revoked_at', 'expires_at', 'token_type')
+    
+    def jti_short(self, obj):
+        return f"{obj.jti[:16]}..."
+    jti_short.short_description = 'JTI'

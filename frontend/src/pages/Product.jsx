@@ -5,7 +5,7 @@ import { fetchProductDetails } from "../slices/productSlice";
 import { addToCartThunk } from "../slices/cartSlice";
 import { getWishlistProductIds, toggleWishlist, createReview, getProductReviews } from "../api/profileApi";
 import { getSimilarProducts } from "../api/productApi";
-import { showToast } from "../utils/toast";
+import notify from "../utils/notifications";
 
 export default function ProductPage() {
   const { id } = useParams();
@@ -110,13 +110,18 @@ export default function ProductPage() {
   const imageUrl = primaryImage || fallbackImg;
 
   const handleAddToCart = async (productId) => {
+    if (!isAuthenticated) {
+      notify.auth.error("Please login to add items to cart");
+      navigate("/login");
+      return;
+    }
     if (adding) return;
     setAdding(true);
     try {
       await dispatch(addToCartThunk({ productId, quantity: 1 })).unwrap();
-      showToast.success("Item added to cart!");
+      notify.cart.added(product.name, productId);
     } catch (err) {
-      showToast.error(err.message || "Error adding item to cart");
+      notify.cart.error(err.message || "Failed to add item");
     } finally {
       setAdding(false);
     }
@@ -124,32 +129,38 @@ export default function ProductPage() {
 
   const handleToggleWishlist = async () => {
     if (!isAuthenticated) {
-      showToast.error("Please login to add to wishlist");
+      notify.auth.error("Please login to add to wishlist");
+      navigate("/login");
       return;
     }
     try {
       await toggleWishlist(product.id, isInWishlist);
       setIsInWishlist(!isInWishlist);
-      showToast.success(isInWishlist ? "Removed from wishlist!" : "Added to wishlist!");
+      if (isInWishlist) {
+        notify.wishlist.removed(product.name);
+      } else {
+        notify.wishlist.added(product.name, product.id);
+      }
     } catch (err) {
-      showToast.error("Error updating wishlist");
+      notify.wishlist.error("Failed to update wishlist");
     }
   };
 
   const handleSubmitReview = async (e) => {
     e.preventDefault();
     if (!isAuthenticated) {
-      showToast.error("Please login to submit a review");
+      notify.auth.error("Please login to submit a review");
+      navigate("/login");
       return;
     }
     try {
       await createReview({ product_id: product.id, ...review });
-      showToast.success("Review submitted!");
+      notify.review.submitted();
       setShowReview(false);
       setReview({ rating: 5, comment: "" });
       loadReviews();
     } catch (err) {
-      showToast.error("Error submitting review");
+      notify.review.error("Failed to submit review");
     }
   };
   return (
@@ -210,14 +221,27 @@ export default function ProductPage() {
             )}
           </div>
 
-          <p className="text-2xl font-semibold text-black dark:text-white mb-4">
-            {product.price != null
-              ? `₹${Number(product.price).toLocaleString("en-IN", {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2,
-                })}`
-              : "Price N/A"}
-          </p>
+          <div className="flex items-center gap-4 mb-4">
+            <p className="text-2xl font-semibold text-black dark:text-white">
+              {product.price != null
+                ? `₹${Number(product.price).toLocaleString("en-IN", {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}`
+                : "Price N/A"}
+            </p>
+            {product.total_stock !== undefined && (
+              <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
+                product.total_stock === 0 ? 'bg-red-100 text-red-800 border border-red-300' :
+                product.total_stock <= 10 ? 'bg-yellow-100 text-yellow-800 border border-yellow-300' :
+                'bg-green-100 text-green-800 border border-green-300'
+              }`}>
+                {product.total_stock === 0 ? 'Out of Stock' :
+                 product.total_stock <= 10 ? `Only ${product.total_stock} left` :
+                 'In Stock'}
+              </span>
+            )}
+          </div>
 
           <p className="text-gray-700 dark:text-gray-300 mb-6 leading-relaxed">
             {product.description || "No description available for this product."}
@@ -226,11 +250,11 @@ export default function ProductPage() {
           <div className="flex gap-3 mt-4">
             <button
               onClick={() => handleAddToCart(product.id)}
-              disabled={adding}
+              disabled={adding || product.total_stock === 0 || !product.is_available}
               className={`flex-1 bg-black text-white dark:bg-white dark:text-black px-4 py-2 rounded-full hover:scale-105 transition ${
-                adding ? 'opacity-50 cursor-not-allowed' : ''
+                adding || product.total_stock === 0 || !product.is_available ? 'opacity-50 cursor-not-allowed' : ''
               }`}>
-                {adding ? "Adding..." : "Add to Cart"}
+                {product.total_stock === 0 || !product.is_available ? "Out of Stock" : adding ? "Adding..." : "Add to Cart"}
             </button>
             <button
               onClick={handleToggleWishlist}

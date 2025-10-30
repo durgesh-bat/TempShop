@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>New Order Notification</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f4f4f4;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f4f4f4; padding: 20px;">
+        <tr>
+            <td align="center">
+                <table width="600" cellpadding="0" cellspacing="0" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 10px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                    <!-- Header -->
+                    <tr>
+                        <td style="padding: 40px 30px; text-align: center;">
+                            <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: bold;">
+                                🎉 New Order Received!
+                            </h1>
+                            <p style="color: #e0e7ff; margin: 10px 0 0 0; font-size: 16px;">
+                                Order #{{ order_id }}
+                            </p>
+                        </td>
+                    </tr>
+                    
+                    <!-- Content -->
+                    <tr>
+                        <td style="background-color: #ffffff; padding: 40px 30px;">
+                            <p style="color: #333333; font-size: 16px; line-height: 1.6; margin: 0 0 20px 0;">
+                                Hello <strong>{{ shopkeeper_name }}</strong>,
+                            </p>
+                            
+                            <p style="color: #333333; font-size: 16px; line-height: 1.6; margin: 0 0 30px 0;">
+                                Great news! You have received a new order from <strong>{{ customer_name }}</strong>.
+                            </p>
+                            
+                            <!-- Order Details Box -->
+                            <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f8f9fa; border-radius: 8px; border: 2px solid #e9ecef; margin-bottom: 30px;">
+                                <tr>
+                                    <td style="padding: 20px;">
+                                        <h2 style="color: #667eea; margin: 0 0 15px 0; font-size: 18px;">
+                                            📦 Order Details
+                                        </h2>
+                                        
+                                        <table width="100%" cellpadding="8" cellspacing="0">
+                                            <tr>
+                                                <td style="color: #666666; font-size: 14px; border-bottom: 1px solid #e9ecef;">
+                                                    <strong>Product:</strong>
+                                                </td>
+                                                <td style="color: #333333; font-size: 14px; text-align: right; border-bottom: 1px solid #e9ecef;">
+                                                    {{ product_name }}
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td style="color: #666666; font-size: 14px; border-bottom: 1px solid #e9ecef;">
+                                                    <strong>Quantity:</strong>
+                                                </td>
+                                                <td style="color: #333333; font-size: 14px; text-align: right; border-bottom: 1px solid #e9ecef;">
+                                                    {{ quantity }}
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td style="color: #666666; font-size: 14px; border-bottom: 1px solid #e9ecef;">
+                                                    <strong>Price per unit:</strong>
+                                                </td>
+                                                <td style="color: #333333; font-size: 14px; text-align: right; border-bottom: 1px solid #e9ecef;">
+                                                    ₹{{ price }}
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td style="color: #667eea; font-size: 16px; padding-top: 10px;">
+                                                    <strong>Total Amount:</strong>
+                                                </td>
+                                                <td style="color: #667eea; font-size: 18px; font-weight: bold; text-align: right; padding-top: 10px;">
+                                                    ₹{{ total }}
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+                            
+                            <!-- Action Button -->
+                            <table width="100%" cellpadding="0" cellspacing="0">
+                                <tr>
+                                    <td align="center" style="padding: 20px 0;">
+                                        <a href="http://localhost:5173/shopkeeper/orders" 
+                                           style="display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #ffffff; text-decoration: none; padding: 15px 40px; border-radius: 25px; font-size: 16px; font-weight: bold; box-shadow: 0 4px 6px rgba(102, 126, 234, 0.3);">
+                                            View Order Details
+                                        </a>
+                                    </td>
+                                </tr>
+                            </table>
+                            
+                            <p style="color: #666666; font-size: 14px; line-height: 1.6; margin: 20px 0 0 0;">
+                                Please process this order as soon as possible to ensure timely delivery to the customer.
+                            </p>
+                        </td>
+                    </tr>
+                    
+                    <!-- Footer -->
+                    <tr>
+                        <td style="background-color: #f8f9fa; padding: 30px; text-align: center; border-top: 1px solid #e9ecef;">
+                            <p style="color: #666666; font-size: 14px; margin: 0 0 10px 0;">
+                                <strong>TempShop Marketplace</strong>
+                            </p>
+                            <p style="color: #999999; font-size: 12px; margin: 0;">
+                                This is an automated notification. Please do not reply to this email.
+                            </p>
+                            <p style="color: #999999; font-size: 12px; margin: 10px 0 0 0;">
+                                © 2024 TempShop. All rights reserved.
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>

@@ -2,7 +2,8 @@ import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import axiosInstance from "./api/axiosInstance";
-import { Toaster } from 'react-hot-toast';
+import NotificationToaster from './components/NotificationToaster';
+import NotificationBell from './components/NotificationBell';
 
 export default function Layout({ children }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -28,7 +29,6 @@ export default function Layout({ children }) {
         const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
         setCartCount(totalItems);
       } catch (err) {
-        console.error("Failed to fetch cart:", err);
         if (err.response?.status === 404 || err.response?.status === 401) {
           setCartCount(0);
         } else {
@@ -40,7 +40,6 @@ export default function Layout({ children }) {
 
     fetchCartCount();
   }, [isAuthenticated, user]);
-      console.log("IsAuthenticated: ",isAuthenticated,"User: ",user);
 
   // Fallback image
   const fallbackImg = (first, last) => {
@@ -103,7 +102,7 @@ export default function Layout({ children }) {
 
   return (
     <div className="bg-gradient-to-b from-gray-100 to-gray-50 dark:from-gray-900 dark:to-black transition-all duration-300">
-      <Toaster position="top-right" />
+      <NotificationToaster />
       {/* Header / Nav */}
       <header className="sticky top-0 z-50 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md shadow-lg border-b border-gray-200 dark:border-gray-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -138,6 +137,9 @@ export default function Layout({ children }) {
             <nav className="hidden md:flex items-center space-x-1">
               <Link to="/" className="px-4 py-2 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition font-medium cursor-pointer">Home</Link>
               <Link to="/shop" className="px-4 py-2 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition font-medium cursor-pointer">Shop</Link>
+              {isAuthenticated && (
+                <Link to="/orders" className="px-4 py-2 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition font-medium cursor-pointer">Orders</Link>
+              )}
               
               {!isAuthenticated && (
                 <a href="/shopkeeper" target="_blank" rel="noopener noreferrer" className="px-4 py-2 rounded-lg text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition font-medium flex items-center gap-1 cursor-pointer">
@@ -151,6 +153,9 @@ export default function Layout({ children }) {
 
             {/* Right Side */}
             <div className="hidden md:flex items-center space-x-3">
+              {/* Notification Bell */}
+              {isAuthenticated && <NotificationBell />}
+              
               {/* Cart */}
               <Link to="/cart" className="relative p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition cursor-pointer">
                 <svg className="w-6 h-6 text-gray-700 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -211,6 +216,9 @@ export default function Layout({ children }) {
             <nav className="px-4 pb-4 space-y-2">
               <Link to="/" className="block px-4 py-3 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition font-medium cursor-pointer" onClick={() => setMobileMenuOpen(false)}>Home</Link>
               <Link to="/shop" className="block px-4 py-3 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition font-medium cursor-pointer" onClick={() => setMobileMenuOpen(false)}>Shop</Link>
+              {isAuthenticated && (
+                <Link to="/orders" className="block px-4 py-3 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition font-medium cursor-pointer" onClick={() => setMobileMenuOpen(false)}>Orders</Link>
+              )}
               
               {!isAuthenticated && (
                 <a href="/shopkeeper" target="_blank" rel="noopener noreferrer" className="block px-4 py-3 rounded-lg text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition font-medium cursor-pointer" onClick={() => setMobileMenuOpen(false)}>Shopkeeper</a>

@@ -12,7 +12,23 @@ from django.db import models
 class ProductDetailView(APIView):
     def get(self, request, id, format=None):
         """Return a single product by ID"""
+        from shopkeeper.models import ShopkeeperProduct
+        from django.db.models import Sum
+        
         product = get_object_or_404(Product, id=id)
+        
+        # Check total stock across all shopkeepers
+        total_stock = ShopkeeperProduct.objects.filter(
+            product=product
+        ).aggregate(total=Sum('stock_quantity'))['total'] or 0
+        
+        # Update product availability based on stock
+        if total_stock == 0 and product.is_available:
+            product.is_available = False
+            product.save()
+        elif total_stock > 0 and not product.is_available:
+            product.is_available = True
+            product.save()
         
         # Track recently viewed for authenticated users
         if request.user.is_authenticated:
@@ -22,7 +38,9 @@ class ProductDetailView(APIView):
             )
         
         serializer = ProductSerializer(product)
-        return Response(serializer.data)
+        data = serializer.data
+        data['total_stock'] = total_stock
+        return Response(data)
 
 class product_view(APIView):
     def get(self, request, format=None):

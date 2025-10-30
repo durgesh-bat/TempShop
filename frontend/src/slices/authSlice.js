@@ -1,6 +1,7 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import { loginUser, registerUser, verifyToken } from '../api/authApi';
+import { loginUser, registerUser, logoutUser } from '../api/authApi';
 import axiosInstance from '../api/axiosInstance';
+import notify from '../utils/notifications';
 
 // --- Async thunk for login ---
 export const login = createAsyncThunk(
@@ -8,10 +9,6 @@ export const login = createAsyncThunk(
   async (credentials, { rejectWithValue }) => {
     try {
       const data = await loginUser(credentials);
-      const access = data.tokens?.access || data.token?.access;
-      const refresh = data.tokens?.refresh || data.token?.refresh;
-      if (access) localStorage.setItem("access_token", access);
-      if (refresh) localStorage.setItem("refresh_token", refresh);
       return data;
     } catch (err) {
       const message = err?.response?.data?.detail || err?.response?.data || err.message || 'Login failed';
@@ -26,10 +23,6 @@ export const register = createAsyncThunk(
   async (userData, { rejectWithValue }) => {
     try {
       const data = await registerUser(userData);
-      const access = data.tokens?.access || data.token?.access;
-      const refresh = data.tokens?.refresh || data.token?.refresh;
-      if (access) localStorage.setItem("access_token", access);
-      if (refresh) localStorage.setItem("refresh_token", refresh);
       return data;
     } catch (err) {
       const message = err?.response?.data?.detail || err?.response?.data || err.message || 'Registration failed';
@@ -43,15 +36,9 @@ export const verifyAuthToken = createAsyncThunk(
   'auth/verifyToken',
   async (_, { rejectWithValue }) => {
     try {
-      const token = localStorage.getItem("access_token");
-      if (!token) return rejectWithValue({ message: 'No token found' });
-
-      await verifyToken(token);
       const response = await axiosInstance.get('/auth/profile/');
-      console.log('Profile response:', response.data); // Debug log
       return response.data;
     } catch (err) {
-      console.error('Token verification failed:', err);
       const message = err?.response?.data?.detail || 
                      err?.response?.data?.message || 
                      err?.response?.data || 
@@ -107,11 +94,10 @@ const authSlice = createSlice({
   initialState,
   reducers: {
     logout: (state) => {
-      localStorage.removeItem("access_token");
-      localStorage.removeItem("refresh_token");
       state.user = null;
       state.isAuthenticated = false;
       state.error = null;
+      notify.auth.logoutSuccess();
     },
   },
   extraReducers: (builder) => {
@@ -128,6 +114,7 @@ const authSlice = createSlice({
         state.user = action.payload.user || action.payload;
         state.emailVerified = action.payload.email_verified !== false;
         console.log('Login user set:', state.user);
+        notify.auth.loginSuccess(state.user?.username || 'User');
       })
       .addCase(login.rejected, (state, action) => { 
         state.loading = false; 
@@ -175,8 +162,6 @@ const authSlice = createSlice({
         state.user = null;
         const errorMsg = action.payload?.message || action.error?.message || 'Authentication failed';
         state.error = errorMsg;
-        localStorage.removeItem("access_token"); 
-        localStorage.removeItem("refresh_token"); 
       });
 
     // Update profile
@@ -190,6 +175,7 @@ const authSlice = createSlice({
         // ✅ Profile update returns flat structure
         state.user = action.payload;
         console.log('Update user set:', state.user);
+        notify.profile.updated();
       })
       .addCase(updateUserProfile.rejected, (state, action) => { 
         state.saving = false; 

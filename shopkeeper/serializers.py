@@ -42,14 +42,20 @@ class ShopkeeperProductSerializer(serializers.ModelSerializer):
     name = serializers.CharField(source='product.name', read_only=True)
     price = serializers.DecimalField(source='product.price', max_digits=10, decimal_places=2, read_only=True)
     description = serializers.CharField(source='product.description', read_only=True)
-    category = serializers.CharField(source='product.category.name', read_only=True)
-    image = serializers.ImageField(source='product.images.first.image', read_only=True)
+    category = serializers.CharField(source='product.category.name', read_only=True, allow_null=True)
+    image = serializers.SerializerMethodField()
     is_available = serializers.BooleanField(source='product.is_available', read_only=True)
 
     class Meta:
         model = ShopkeeperProduct
         fields = ['id', 'shopkeeper', 'shopkeeper_name', 'product', 'name', 'price', 'description', 'category', 'stock_quantity', 'image', 'is_available']
         read_only_fields = ['shopkeeper']
+    
+    def get_image(self, obj):
+        first_image = obj.product.images.first()
+        if first_image and first_image.image:
+            return first_image.image.url
+        return None
 
 class ShopkeeperOrderSerializer(serializers.ModelSerializer):
     shopkeeper_name = serializers.CharField(source='shopkeeper.username', read_only=True)

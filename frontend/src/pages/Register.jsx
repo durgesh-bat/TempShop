@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { register } from "../slices/authSlice";
-import { showToast } from "../utils/toast";
+import notify from "../utils/notifications";
 
 export default function Register() {
   const navigate = useNavigate();
@@ -42,7 +42,7 @@ export default function Register() {
     e.preventDefault();
     
     if (formData.password !== formData.password2) {
-      showToast.error("Passwords do not match!");
+      notify.error("Passwords do not match!");
       return;
     }
 
@@ -54,8 +54,8 @@ export default function Register() {
         password2: formData.password2
       })).unwrap();
       
-      // Show verification message
-      showToast.success(result.message || "Registration successful! Please check your email to verify your account.");
+      notify.auth.registerSuccess();
+      notify.auth.verificationSent();
       
       // Redirect to profile after successful registration
       navigate("/profile", { replace: true });

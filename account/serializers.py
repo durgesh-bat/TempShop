@@ -1,18 +1,40 @@
 from rest_framework import serializers
 from .models import Client, Address, Wallet, PaymentMethod, Order, OrderItem, Review, Wishlist
 from product.serializers import ProductSerializer
+from .validators import validate_email, validate_username, validate_phone, validate_text_input
 
 class RegisterSerializer(serializers.ModelSerializer):
-    password = serializers.CharField(write_only=True, required=True, style={'input_type': 'password'})
+    password = serializers.CharField(write_only=True, required=True, style={'input_type': 'password'}, min_length=8, max_length=128)
     password2 = serializers.CharField(write_only=True, required=True, style={'input_type': 'password'})
 
     class Meta:
         model = Client
         fields = ('username', 'email', 'password', 'password2', 'phone_number')
 
+    def validate_username(self, value):
+        return validate_username(value)
+    
+    def validate_email(self, value):
+        return validate_email(value)
+    
+    def validate_phone_number(self, value):
+        if value:
+            return validate_phone(value)
+        return value
+
     def validate(self, data):
         if data['password'] != data['password2']:
             raise serializers.ValidationError("Passwords do not match.")
+        
+        # Check password strength
+        password = data['password']
+        if not any(c.isupper() for c in password):
+            raise serializers.ValidationError("Password must contain at least one uppercase letter")
+        if not any(c.islower() for c in password):
+            raise serializers.ValidationError("Password must contain at least one lowercase letter")
+        if not any(c.isdigit() for c in password):
+            raise serializers.ValidationError("Password must contain at least one digit")
+        
         return data
 
     def create(self, validated_data):
@@ -41,6 +63,21 @@ class AddressSerializer(serializers.ModelSerializer):
         model = Address
         fields = ['id', 'label', 'street', 'city', 'state', 'postal_code', 'country', 'is_default', 'created_at']
         read_only_fields = ['id', 'created_at']
+    
+    def validate_label(self, value):
+        return validate_text_input(value, 'Label', 50)
+    
+    def validate_street(self, value):
+        return validate_text_input(value, 'Street', 255)
+    
+    def validate_city(self, value):
+        return validate_text_input(value, 'City', 100)
+    
+    def validate_state(self, value):
+        return validate_text_input(value, 'State', 100)
+    
+    def validate_country(self, value):
+        return validate_text_input(value, 'Country', 100)
 
 
 class WalletSerializer(serializers.ModelSerializer):
@@ -59,10 +96,11 @@ class PaymentMethodSerializer(serializers.ModelSerializer):
 
 class OrderItemSerializer(serializers.ModelSerializer):
     product = ProductSerializer(read_only=True)
+    shopkeeper_name = serializers.CharField(source='shopkeeper.business_name', read_only=True, allow_null=True)
 
     class Meta:
         model = OrderItem
-        fields = ['id', 'product', 'quantity', 'price']
+        fields = ['id', 'product', 'shopkeeper_name', 'quantity', 'price']
 
 
 class OrderSerializer(serializers.ModelSerializer):
@@ -83,6 +121,16 @@ class ReviewSerializer(serializers.ModelSerializer):
         model = Review
         fields = ['id', 'user', 'product', 'rating', 'comment', 'created_at']
         read_only_fields = ['id', 'user', 'created_at']
+    
+    def validate_rating(self, value):
+        if not isinstance(value, int) or value < 1 or value > 5:
+            raise serializers.ValidationError("Rating must be between 1 and 5")
+        return value
+    
+    def validate_comment(self, value):
+        if value:
+            return validate_text_input(value, 'Comment', 1000)
+        return value
 
 
 class WishlistSerializer(serializers.ModelSerializer):

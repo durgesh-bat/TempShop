@@ -5,9 +5,9 @@ from django.urls import path
 from django.shortcuts import render
 from django.contrib.admin.views.decorators import staff_member_required
 from product.models import Product, Category
-from cart.models import Order, Cart
-from account.models import UserAccount
-from shopkipper.models import Shopkeeper
+from cart.models import Order, OrderItem,Cart
+from account.models import Client
+from shopkeeper.models import Shopkeeper
 from django.contrib.auth.models import User
 
 

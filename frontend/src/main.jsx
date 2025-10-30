@@ -14,6 +14,9 @@ import VerifyEmail from "./pages/VerifyEmail";
 import VerifyOTP from "./pages/VerifyOTP";
 import ProtectedRoute from "./components/ProtectedRoute";
 import CartPage from "./pages/CartPage";
+import CheckoutPage from "./pages/CheckoutPage";
+import OrderSuccessPage from "./pages/OrderSuccessPage";
+import OrdersPage from "./pages/OrdersPage";
 import ShopPage from "./pages/ShopPage";
 import Contact from "./pages/Contact";
 import { store } from './store';
@@ -29,6 +32,7 @@ import Inventory from "./shopkipper/Inventory";
 import Payments from "./shopkipper/Payments";
 import Analytics from "./shopkipper/Analytics";
 import ManageProducts from "./shopkipper/ManageProducts";
+import CustomerOrders from "./shopkipper/CustomerOrders";
 
 // Wrapper for auth routes to prevent redirect loops
 function AuthRoute({ children }) {
@@ -46,33 +50,29 @@ function AuthRoute({ children }) {
 // App wrapper component for auto-verification
 function AppWrapper() {
   const dispatch = useDispatch();
+  const location = useLocation();
   const [initialCheckDone, setInitialCheckDone] = useState(false);
 
-  // Auto-verify token on app mount - RUNS ONLY ONCE
+  // Auto-verify token ONLY if on protected route
   useEffect(() => {
     let isMounted = true;
 
-    const checkAuth = async () => {
-      const token = localStorage.getItem('access_token');
-      
-      if (!token) {
-        setInitialCheckDone(true);
-        return;
-      }
+    const protectedPaths = ['/profile', '/cart', '/checkout', '/orders', '/user-profile'];
+    const isProtectedRoute = protectedPaths.some(path => location.pathname.startsWith(path));
 
-      try {
-        await dispatch(verifyAuthToken()).unwrap();
-        if (isMounted) {
-          console.log('✅ Auto-login successful');
+    const checkAuth = async () => {
+      if (isProtectedRoute) {
+        try {
+          await dispatch(verifyAuthToken()).unwrap();
+          if (isMounted) {
+            console.log('✅ Auto-login successful');
+          }
+        } catch (error) {
+          // Silently fail - user just not logged in
         }
-      } catch (error) {
-        if (isMounted) {
-          console.log('❌ Auto-login failed:', error);
-        }
-      } finally {
-        if (isMounted) {
-          setInitialCheckDone(true);
-        }
+      }
+      if (isMounted) {
+        setInitialCheckDone(true);
       }
     };
 
@@ -81,18 +81,11 @@ function AppWrapper() {
     return () => {
       isMounted = false;
     };
-  }, [dispatch]);
+  }, [dispatch, location.pathname]);
 
-  // Show loading screen during initial verification
+  // Show minimal loading
   if (!initialCheckDone) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-black">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-blue-500 mx-auto mb-4"></div>
-          <p className="text-gray-600 dark:text-gray-300 text-lg">Loading TempShop...</p>
-        </div>
-      </div>
-    );
+    return null;
   }
 
   return (
@@ -196,6 +189,36 @@ function AppWrapper() {
           </ProtectedRoute>
         } 
       />
+      <Route 
+        path="/checkout" 
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <CheckoutPage />
+            </Layout>
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/order-success" 
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <OrderSuccessPage />
+            </Layout>
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/orders" 
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <OrdersPage />
+            </Layout>
+          </ProtectedRoute>
+        } 
+      />
       
       {/* 🔒 Shopkeeper Routes - Separate Environment */}
       <Route
@@ -267,6 +290,14 @@ function AppWrapper() {
         element={
           <ShopkeeperLayout>
             <ManageProducts />
+          </ShopkeeperLayout>
+        }
+      />
+      <Route
+        path="/shopkeeper/orders"
+        element={
+          <ShopkeeperLayout>
+            <CustomerOrders />
           </ShopkeeperLayout>
         }
       />

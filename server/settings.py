@@ -3,9 +3,6 @@ from dotenv import load_dotenv
 import os
 from datetime import timedelta
 import cloudinary
-import cloudinary.uploader
-import cloudinary.api
-import psycopg2
 
 
 load_dotenv()
@@ -41,7 +38,18 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
 ]
-CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+]
 
 # Application definition
 
@@ -64,15 +72,16 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
-    'django.middleware.security.SecurityMiddleware',
     'corsheaders.middleware.CorsMiddleware',
+    'django.middleware.security.SecurityMiddleware',
+    'account.security_middleware.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'account.middleware.CookieMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'account.jwt_middleware.JWTAuthMiddleware',
 ]
 
 ROOT_URLCONF = 'server.urls'
@@ -182,21 +191,62 @@ AUTH_USER_MODEL = 'account.Client'
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'account.authentication.JWTCookieAuthentication',
     ],
+    'DEFAULT_THROTTLE_CLASSES': [
+        'account.throttles.BurstRateThrottle',
+        'account.throttles.SustainedRateThrottle',
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'anon': '1000/hour',
+        'user': '5000/hour',
+        'burst': '500/minute',
+        'sustained': '5000/hour',
+        'login': '10/hour',
+        'register': '10/hour',
+        'otp': '5/hour',
+    },
 }
+
+# JWT Keys
+with open(BASE_DIR / 'jwt_private.pem', 'r') as f:
+    JWT_PRIVATE_KEY = f.read()
+with open(BASE_DIR / 'jwt_public.pem', 'r') as f:
+    JWT_PUBLIC_KEY = f.read()
 
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(hours=1),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
     "ROTATE_REFRESH_TOKENS": False,
     "BLACKLIST_AFTER_ROTATION": False,
-    "ALGORITHM": "HS256",
-    "SIGNING_KEY": os.getenv("SECRET_KEY"),
+    "ALGORITHM": "RS256",
+    "SIGNING_KEY": JWT_PRIVATE_KEY,
+    "VERIFYING_KEY": JWT_PUBLIC_KEY,
     "AUTH_HEADER_TYPES": ("Bearer",),
     "USER_ID_FIELD": "id",
     "USER_ID_CLAIM": "user_id",
+    "JTI_CLAIM": "jti",
+    "AUTH_COOKIE": "access_token",
+    "AUTH_COOKIE_REFRESH": "refresh_token",
+    "AUTH_COOKIE_SECURE": False,  # Set True in production with HTTPS
+    "AUTH_COOKIE_HTTP_ONLY": True,
+    "AUTH_COOKIE_SAMESITE": "Lax",
+    "AUTH_COOKIE_PATH": "/",
 }
+
+# CSRF Settings
+CSRF_COOKIE_HTTPONLY = False  # Allow JS to read CSRF token
+CSRF_COOKIE_SAMESITE = 'Lax'
+CSRF_COOKIE_SECURE = False  # Set True in production with HTTPS
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
+]
+CSRF_COOKIE_NAME = 'csrftoken'
+SESSION_COOKIE_SAMESITE = 'Lax'
+SESSION_COOKIE_SECURE = False  # Set True in production
 
 # Email Configuration (Brevo SMTP)
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'

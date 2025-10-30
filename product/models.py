@@ -39,6 +39,10 @@ class Product(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    def get_available_shopkeepers(self):
+        from shopkeeper.models import ShopkeeperProduct
+        return ShopkeeperProduct.objects.filter(product=self, stock_quantity__gt=0).select_related('shopkeeper')
+
     def __str__(self):
         return self.name
 

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { getReviews, deleteReview } from "../api/profileApi";
+import notify from "../utils/notifications";
 
 export default function ReviewsManager() {
   const [reviews, setReviews] = useState([]);
@@ -15,8 +16,13 @@ export default function ReviewsManager() {
 
   const handleDelete = async (id) => {
     if (confirm("Delete this review?")) {
-      await deleteReview(id);
-      loadReviews();
+      try {
+        await deleteReview(id);
+        notify.review.deleted();
+        loadReviews();
+      } catch (err) {
+        notify.review.error("Failed to delete review");
+      }
     }
   };
 

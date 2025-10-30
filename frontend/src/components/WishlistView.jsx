@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { getWishlist, removeFromWishlist } from "../api/profileApi";
 import { useNavigate } from "react-router-dom";
+import notify from "../utils/notifications";
 
 export default function WishlistView() {
   const [wishlist, setWishlist] = useState([]);
@@ -16,8 +17,14 @@ export default function WishlistView() {
   };
 
   const handleRemove = async (id) => {
-    await removeFromWishlist(id);
-    loadWishlist();
+    const item = wishlist.find(w => w.id === id);
+    try {
+      await removeFromWishlist(id);
+      notify.wishlist.removed(item?.product?.name || "Item");
+      loadWishlist();
+    } catch (err) {
+      notify.wishlist.error("Failed to remove from wishlist");
+    }
   };
 
   return (

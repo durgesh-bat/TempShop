@@ -1,51 +1,90 @@
 import axios from 'axios';
 
-const BASE_URL = "http://127.0.0.1:8000/api"; // Django backend URL
+const BASE_URL = "http://localhost:8000/api";
 
 const axiosInstance = axios.create({
   baseURL: BASE_URL,
   headers: {
     "Content-Type": "application/json",
   },
+  withCredentials: true, // Enable cookies
 });
 
-// ✅ Automatically attach Access Token (if available)
+// Get CSRF token from cookie
+const getCsrfToken = () => {
+  const name = 'csrftoken';
+  const cookies = document.cookie.split(';');
+  for (let cookie of cookies) {
+    const [key, value] = cookie.trim().split('=');
+    if (key === name) return value;
+  }
+  return null;
+};
+
+// Attach CSRF token to requests
 axiosInstance.interceptors.request.use((config) => {
-  const token = localStorage.getItem("access_token");
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+  const csrfToken = getCsrfToken();
+  if (csrfToken && ['post', 'put', 'patch', 'delete'].includes(config.method?.toLowerCase())) {
+    config.headers['X-CSRFToken'] = csrfToken;
   }
   return config;
 });
 
-// ✅ Handle Token Expiration or API Errors
+// Handle token refresh on 401
+let isRefreshing = false;
+let failedQueue = [];
+
+const processQueue = (error, token = null) => {
+  failedQueue.forEach(prom => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve(token);
+    }
+  });
+  failedQueue = [];
+};
+
 axiosInstance.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
 
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    // Skip retry for auth endpoints or if already retried
+    if (originalRequest._retry || 
+        originalRequest.url?.includes('/auth/login') || 
+        originalRequest.url?.includes('/auth/register') ||
+        originalRequest.url?.includes('/auth/token/refresh') ||
+        originalRequest.url?.includes('/auth/profile')) {
+      return Promise.reject(error);
+    }
+
+    // Only attempt refresh on protected routes
+    const protectedRoutes = ['/cart', '/orders', '/addresses', '/wallet', '/payment-methods', '/reviews', '/wishlist'];
+    const isProtectedEndpoint = protectedRoutes.some(route => originalRequest.url?.includes(route));
+
+    if (error.response?.status === 401 && isProtectedEndpoint) {
+      if (isRefreshing) {
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        }).then(() => axiosInstance(originalRequest));
+      }
+
       originalRequest._retry = true;
-      
+      isRefreshing = true;
+
       try {
-        const refreshToken = localStorage.getItem("refresh_token");
-        if (!refreshToken) {
-          throw new Error("No refresh token available");
-        }
-
-        const response = await axios.post(`${BASE_URL}/auth/token/refresh/`, {
-          refresh: refreshToken
+        await axios.post(`${BASE_URL}/auth/token/refresh/`, {}, {
+          withCredentials: true,
+          headers: { 'X-CSRFToken': getCsrfToken() }
         });
-
-        if (response.data.access) {
-          localStorage.setItem("access_token", response.data.access);
-          originalRequest.headers.Authorization = `Bearer ${response.data.access}`;
-          return axiosInstance(originalRequest);
-        }
+        processQueue(null);
+        isRefreshing = false;
+        return axiosInstance(originalRequest);
       } catch (refreshError) {
-        localStorage.removeItem("access_token");
-        localStorage.removeItem("refresh_token");
-        window.location.href = "/login";
+        processQueue(refreshError, null);
+        isRefreshing = false;
+        return Promise.reject(refreshError);
       }
     }
     return Promise.reject(error);

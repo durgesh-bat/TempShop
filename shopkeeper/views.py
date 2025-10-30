@@ -7,6 +7,7 @@ from rest_framework.parsers import MultiPartParser, FormParser
 from django.contrib.auth import authenticate
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.shortcuts import get_object_or_404
+from django.http import HttpResponse
 import uuid
 
 from .models import Shopkeeper, ShopkeeperProduct, ShopkeeperOrder, ShopkeeperDocument, ShopkeeperReview
@@ -105,11 +106,13 @@ class ShopkeeperProductView(APIView):
     def get(self, request):
         try:
             shopkeeper = Shopkeeper.objects.get(id=request.user.id)
-            products = ShopkeeperProduct.objects.filter(shopkeeper=shopkeeper)
+            products = ShopkeeperProduct.objects.filter(shopkeeper=shopkeeper).select_related('product', 'product__category').prefetch_related('product__images')
             serializer = ShopkeeperProductSerializer(products, many=True)
-            return Response(serializer.data)
+            return Response(serializer.data, status=status.HTTP_200_OK)
         except Shopkeeper.DoesNotExist:
             return Response({"error": "Unauthorized"}, status=status.HTTP_401_UNAUTHORIZED)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def post(self, request):
         from product.models import Product, Category, ProductImage
@@ -417,6 +420,48 @@ def product_analytics(request):
     except Shopkeeper.DoesNotExist:
         return Response({"error": "Unauthorized"}, status=status.HTTP_401_UNAUTHORIZED)
 
+# Get shopkeeper's order items from customer orders
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def shopkeeper_customer_orders(request):
+    try:
+        shopkeeper = Shopkeeper.objects.get(id=request.user.id)
+        from account.models import OrderItem
+        
+        # Get all order items assigned to this shopkeeper
+        order_items = OrderItem.objects.filter(shopkeeper=shopkeeper).select_related('order', 'product', 'order__user', 'order__address').order_by('-order__created_at')
+        
+        orders_data = []
+        for item in order_items:
+            orders_data.append({
+                'id': item.id,
+                'order_id': item.order.id,
+                'customer_name': f"{item.order.user.first_name} {item.order.user.last_name}" if item.order.user.first_name else item.order.user.username,
+                'customer_email': item.order.user.email,
+                'customer_phone': item.order.user.phone_number or 'N/A',
+                'product_name': item.product.name,
+                'quantity': item.quantity,
+                'price': float(item.price),
+                'total': float(item.price * item.quantity),
+                'status': item.order.status,
+                'shipping_address': {
+                    'label': item.order.address.label if item.order.address else 'N/A',
+                    'street': item.order.address.street if item.order.address else 'N/A',
+                    'city': item.order.address.city if item.order.address else 'N/A',
+                    'state': item.order.address.state if item.order.address else 'N/A',
+                    'postal_code': item.order.address.postal_code if item.order.address else 'N/A',
+                    'country': item.order.address.country if item.order.address else 'N/A',
+                    'full_address': f"{item.order.address.street}, {item.order.address.city}, {item.order.address.state} {item.order.address.postal_code}, {item.order.address.country}" if item.order.address else 'N/A'
+                },
+                'created_at': item.order.created_at.isoformat() if item.order.created_at else None,
+            })
+        
+        return Response(orders_data, status=status.HTTP_200_OK)
+    except Shopkeeper.DoesNotExist:
+        return Response({"error": "Unauthorized"}, status=status.HTTP_401_UNAUTHORIZED)
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 # Dashboard Stats
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -424,20 +469,37 @@ def shopkeeper_dashboard(request):
     try:
         shopkeeper = Shopkeeper.objects.get(id=request.user.id)
         
+        from account.models import OrderItem
+        
         # Get stats
         total_products = ShopkeeperProduct.objects.filter(shopkeeper=shopkeeper).count()
         out_of_stock = ShopkeeperProduct.objects.filter(shopkeeper=shopkeeper, stock_quantity=0).count()
         low_stock = ShopkeeperProduct.objects.filter(shopkeeper=shopkeeper, stock_quantity__lte=10, stock_quantity__gt=0).count()
-        total_orders = ShopkeeperOrder.objects.filter(shopkeeper=shopkeeper).count()
-        pending_orders = ShopkeeperOrder.objects.filter(shopkeeper=shopkeeper, status='pending').count()
-        total_revenue = sum(order.total_amount for order in ShopkeeperOrder.objects.filter(shopkeeper=shopkeeper, status='delivered'))
+        
+        # Get customer orders assigned to this shopkeeper
+        order_items = OrderItem.objects.filter(shopkeeper=shopkeeper).select_related('order')
+        total_orders = order_items.count()
+        pending_orders = order_items.filter(order__status='pending').count()
+        delivered_items = order_items.filter(order__status='delivered')
+        total_revenue = sum(item.price * item.quantity for item in delivered_items)
         commission_rate = 0.15  # 15% platform commission
         total_commission = float(total_revenue) * commission_rate
         net_earnings = float(total_revenue) - total_commission
         
-        # Recent orders
-        recent_orders = ShopkeeperOrder.objects.filter(shopkeeper=shopkeeper).order_by('-created_at')[:5]
-        recent_orders_serializer = ShopkeeperOrderSerializer(recent_orders, many=True)
+        # Recent orders from customers
+        recent_items = order_items.order_by('-order__created_at')[:5]
+        recent_orders_data = []
+        for item in recent_items:
+            recent_orders_data.append({
+                'id': item.id,
+                'order_id': item.order.id,
+                'customer_name': item.order.user.username,
+                'product_name': item.product.name,
+                'quantity': item.quantity,
+                'total': float(item.price * item.quantity),
+                'status': item.order.status,
+                'created_at': item.order.created_at.isoformat() if item.order.created_at else None,
+            })
         
         return Response({
             'stats': {
@@ -451,7 +513,25 @@ def shopkeeper_dashboard(request):
                 'total_commission': total_commission,
                 'net_earnings': net_earnings
             },
-            'recent_orders': recent_orders_serializer.data
+            'recent_orders': recent_orders_data
         }, status=status.HTTP_200_OK)
     except Shopkeeper.DoesNotExist:
         return Response({"error": "Unauthorized"}, status=status.HTTP_401_UNAUTHORIZED)
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def download_selling_receipt(request, order_item_id):
+    from .receipt_generator import generate_selling_receipt
+    from account.models import OrderItem
+    
+    shopkeeper = get_object_or_404(Shopkeeper, id=request.user.id)
+    order_item = get_object_or_404(OrderItem, id=order_item_id, shopkeeper=shopkeeper)
+    
+    pdf_buffer = generate_selling_receipt(order_item, shopkeeper)
+    
+    response = HttpResponse(pdf_buffer, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="selling_receipt_{order_item.order.id}_{order_item.id}.pdf"'
+    return response

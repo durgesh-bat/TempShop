@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import AddressManager from "../components/AddressManager";
 import WalletView from "../components/WalletView";
 import OrderHistory from "../components/OrderHistory";
@@ -7,8 +7,16 @@ import ReviewsManager from "../components/ReviewsManager";
 import WishlistView from "../components/WishlistView";
 
 export default function UserProfile() {
+  const [searchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState("addresses");
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const tab = searchParams.get('tab');
+    if (tab) {
+      setActiveTab(tab);
+    }
+  }, [searchParams]);
 
   const tabs = [
     { id: "addresses", label: "Addresses", icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>, component: AddressManager, color: "blue" },

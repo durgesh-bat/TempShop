@@ -1,18 +1,32 @@
 import axiosInstance from "./axiosInstance";
+import axios from 'axios';
+
+const BASE_URL = "http://localhost:8000/api";
+
+// Get CSRF token before login/register
+export const getCsrfToken = async () => {
+  await axios.get(`${BASE_URL}/auth/csrf/`, { withCredentials: true });
+};
 
 export const loginUser = async (credentials) => {
-  console.log("Credentials: ",credentials)
+  await getCsrfToken();
   const res = await axiosInstance.post("/auth/login/", credentials);
   return res.data;
 };
 
 export const registerUser = async (userData) => {
+  await getCsrfToken();
   const res = await axiosInstance.post("/auth/register/", userData);
   return res.data;
 };
 
-export const verifyToken = async (token) => {
-  const res = await axiosInstance.post("/auth/token/verify/", {token });
+export const logoutUser = async () => {
+  const res = await axiosInstance.post("/auth/logout/");
+  return res.data;
+};
+
+export const verifyToken = async () => {
+  const res = await axiosInstance.get("/auth/profile/");
   return res.data;
 };
 

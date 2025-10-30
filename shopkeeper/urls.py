@@ -25,6 +25,7 @@ urlpatterns = [
     
     # Dashboard
     path('dashboard/', views.shopkeeper_dashboard, name='shopkeeper-dashboard'),
+    path('customer-orders/', views.shopkeeper_customer_orders, name='shopkeeper-customer-orders'),
     
     # Inventory Management
     path('inventory/', views.inventory_overview, name='inventory-overview'),
@@ -34,4 +35,7 @@ urlpatterns = [
     # Payment & Analytics
     path('payments/', views.payment_history, name='payment-history'),
     path('analytics/', views.product_analytics, name='product-analytics'),
+    
+    # Receipts
+    path('order-items/<int:order_item_id>/receipt/', views.download_selling_receipt, name='download-selling-receipt'),
 ]

@@ -8,11 +8,13 @@ from rest_framework_simplejwt.views import (
 
 urlpatterns = [
     path("token/", TokenObtainPairView.as_view(), name="token_obtain_pair"),
-    path("token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
+    path("token/refresh/", views.refresh_token, name="token_refresh"),
     path('token/verify/', TokenVerifyView.as_view(), name='token_verify'),
 
     path("register/", views.register_user, name="register"),
     path("login/", views.login_user, name="login"),
+    path("logout/", views.logout_user, name="logout"),
+    path("csrf/", views.get_csrf_token, name="csrf"),
     path('profile/', views.ProfileView.as_view(), name='user-profile'),
 
     path('addresses/', views.AddressView.as_view(), name='addresses'),
@@ -25,6 +27,7 @@ urlpatterns = [
 
     path('orders/', views.OrderView.as_view(), name='orders'),
     path('orders/<int:pk>/', views.OrderDetailView.as_view(), name='order-detail'),
+    path('orders/<int:order_id>/receipt/', views.download_purchase_receipt, name='download-purchase-receipt'),
 
     path('reviews/', views.ReviewView.as_view(), name='reviews'),
     path('reviews/<int:pk>/', views.ReviewDetailView.as_view(), name='review-detail'),
@@ -39,5 +42,4 @@ urlpatterns = [
     path('verify-email/<str:token>/', views.verify_email, name='verify-email'),
     path('send-otp/', views.send_otp, name='send-otp'),
     path('verify-otp/', views.verify_otp, name='verify-otp'),
-    path('test-otp-setup/', views.test_otp_setup, name='test-otp-setup'),
 ]

@@ -16,10 +16,16 @@ class ProductImageSerializer(serializers.ModelSerializer):
 class ProductSerializer(serializers.ModelSerializer):
     category = serializers.StringRelatedField()
     images = ProductImageSerializer(many=True, read_only=True)
+    total_stock = serializers.SerializerMethodField()
 
     class Meta:
         model = Product
         fields = '__all__'
+    
+    def get_total_stock(self, obj):
+        from shopkeeper.models import ShopkeeperProduct
+        from django.db.models import Sum
+        return ShopkeeperProduct.objects.filter(product=obj).aggregate(total=Sum('stock_quantity'))['total'] or 0
 
 class CategorySerializer(serializers.ModelSerializer):
     image = serializers.SerializerMethodField()

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { getAddresses, createAddress, updateAddress, deleteAddress } from "../api/profileApi";
+import notify from "../utils/notifications";
 
 export default function AddressManager() {
   const [addresses, setAddresses] = useState([]);
@@ -18,15 +19,21 @@ export default function AddressManager() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (editId) {
-      await updateAddress(editId, form);
-    } else {
-      await createAddress(form);
+    try {
+      if (editId) {
+        await updateAddress(editId, form);
+        notify.address.updated();
+      } else {
+        await createAddress(form);
+        notify.address.added();
+      }
+      setForm({ label: "", street: "", city: "", state: "", postal_code: "", country: "", is_default: false });
+      setShowForm(false);
+      setEditId(null);
+      loadAddresses();
+    } catch (err) {
+      notify.address.error("Failed to save address");
     }
-    setForm({ label: "", street: "", city: "", state: "", postal_code: "", country: "", is_default: false });
-    setShowForm(false);
-    setEditId(null);
-    loadAddresses();
   };
 
   const handleEdit = (addr) => {
@@ -37,8 +44,13 @@ export default function AddressManager() {
 
   const handleDelete = async (id) => {
     if (confirm("Delete this address?")) {
-      await deleteAddress(id);
-      loadAddresses();
+      try {
+        await deleteAddress(id);
+        notify.address.deleted();
+        loadAddresses();
+      } catch (err) {
+        notify.address.error("Failed to delete address");
+      }
     }
   };
 

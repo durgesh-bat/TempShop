@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { addToCartThunk } from "../slices/cartSlice";
-import toast, { Toaster } from 'react-hot-toast';
+import notify from '../utils/notifications';
 import { getWishlistProductIds, toggleWishlist } from "../api/profileApi";
 import { getProductsByCategory, getRecentlyViewed } from "../api/productApi";
 import { getAllCategories } from "../api/categoryApi";
@@ -38,7 +38,7 @@ export default function HomePage() {
       setWishlistIds(wishlistData);
       setRecentlyViewed(recentData);
     } catch (err) {
-      toast.error("Failed to load products");
+      notify.error("Failed to load products");
     } finally {
       setLoading(false);
     }
@@ -46,16 +46,16 @@ export default function HomePage() {
 
   const handleAddToCart = async (product) => {
     if (!isAuthenticated) {
-      toast.error("Please login to add items to cart");
+      notify.auth.error("Please login to add items to cart");
       navigate("/login");
       return;
     }
     setAddingProducts(prev => ({ ...prev, [product.id]: true }));
     try {
       await dispatch(addToCartThunk({ productId: product.id, quantity: 1 })).unwrap();
-      toast.success(`${product.name} added to cart!`);
+      notify.cart.added(product.name);
     } catch (err) {
-      toast.error(err.message || "Failed to add item to cart");
+      notify.cart.error(err.message || "Failed to add item to cart");
     } finally {
       setAddingProducts(prev => ({ ...prev, [product.id]: false }));
     }
@@ -64,7 +64,7 @@ export default function HomePage() {
   const handleToggleWishlist = async (e, product) => {
     e.preventDefault();
     if (!isAuthenticated) {
-      toast.error("Please login to add to wishlist");
+      notify.auth.error("Please login to add to wishlist");
       navigate("/login");
       return;
     }
@@ -72,9 +72,13 @@ export default function HomePage() {
     try {
       await toggleWishlist(product.id, isInWishlist);
       setWishlistIds(isInWishlist ? wishlistIds.filter(id => id !== product.id) : [...wishlistIds, product.id]);
-      toast.success(`${product.name} ${isInWishlist ? 'removed from' : 'added to'} wishlist!`);
+      if (isInWishlist) {
+        notify.wishlist.removed(product.name);
+      } else {
+        notify.wishlist.added(product.name);
+      }
     } catch (err) {
-      toast.error("Failed to update wishlist");
+      notify.wishlist.error("Failed to update wishlist");
     }
   };
 
@@ -99,9 +103,20 @@ export default function HomePage() {
           ))}
           <span className="ml-1 text-sm text-gray-500">({(item.rating || 0).toFixed(1)})</span>
         </div>
-        <p className="text-gray-800 dark:text-gray-200 font-semibold text-lg mb-3">₹{Number(item.price).toLocaleString("en-IN", { minimumFractionDigits: 2 })}</p>
-        <button onClick={() => handleAddToCart(item)} disabled={addingProducts[item.id]} className={`${addingProducts[item.id] ? "bg-gray-400 cursor-not-allowed" : "bg-black dark:bg-white dark:text-black text-white hover:scale-105"} px-4 py-2 rounded-full font-semibold transition w-full mt-auto`}>
-          {addingProducts[item.id] ? "Adding..." : "Add to Cart"}
+        <div className="flex items-center justify-between mb-2">
+          <p className="text-gray-800 dark:text-gray-200 font-semibold text-lg">₹{Number(item.price).toLocaleString("en-IN", { minimumFractionDigits: 2 })}</p>
+          {item.total_stock !== undefined && (
+            <span className={`text-xs px-2 py-1 rounded-full font-semibold ${
+              item.total_stock === 0 ? 'bg-red-100 text-red-800' :
+              item.total_stock <= 10 ? 'bg-yellow-100 text-yellow-800' :
+              'bg-green-100 text-green-800'
+            }`}>
+              {item.total_stock === 0 ? 'Out' : item.total_stock <= 10 ? `${item.total_stock} left` : 'In Stock'}
+            </span>
+          )}
+        </div>
+        <button onClick={() => handleAddToCart(item)} disabled={addingProducts[item.id] || item.total_stock === 0 || !item.is_available} className={`${addingProducts[item.id] || item.total_stock === 0 || !item.is_available ? "bg-gray-400 cursor-not-allowed" : "bg-black dark:bg-white dark:text-black text-white hover:scale-105"} px-4 py-2 rounded-full font-semibold transition w-full mt-auto`}>
+          {item.total_stock === 0 || !item.is_available ? "Out of Stock" : addingProducts[item.id] ? "Adding..." : "Add to Cart"}
         </button>
       </div>
     </div>
@@ -109,7 +124,6 @@ export default function HomePage() {
 
   return (
     <div className="bg-white text-black dark:bg-black dark:text-white min-h-screen transition-all duration-300">
-      <Toaster position="top-right" />
 
       {/* Hero */}
       <main className="text-center px-6 py-16 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-gray-900 dark:to-gray-800">

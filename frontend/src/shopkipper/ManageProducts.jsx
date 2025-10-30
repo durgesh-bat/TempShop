@@ -84,10 +84,10 @@ export default function ManageProducts() {
             {products.map((product) => (
               <div key={product.id} className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-2xl transition">
                 <div className="relative h-48 bg-gray-200">
-                  {product.product?.images?.[0]?.image ? (
+                  {product.image ? (
                     <img
-                      src={product.product.images[0].image}
-                      alt={product.product.name}
+                      src={product.image}
+                      alt={product.name}
                       className="w-full h-full object-cover"
                     />
                   ) : (
@@ -99,29 +99,33 @@ export default function ManageProducts() {
                   )}
                   <div className="absolute top-2 right-2">
                     <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                      product.product?.is_available ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
+                      product.stock_quantity === 0 ? 'bg-red-500 text-white' :
+                      product.stock_quantity <= 10 ? 'bg-yellow-500 text-white' :
+                      product.is_available ? 'bg-green-500 text-white' : 'bg-gray-500 text-white'
                     }`}>
-                      {product.product?.is_available ? 'Active' : 'Inactive'}
+                      {product.stock_quantity === 0 ? 'Out of Stock' :
+                       product.stock_quantity <= 10 ? 'Low Stock' :
+                       product.is_available ? 'In Stock' : 'Inactive'}
                     </span>
                   </div>
                 </div>
                 
                 <div className="p-6">
                   <h3 className="text-xl font-bold text-gray-800 mb-2 truncate">
-                    {product.product?.name}
+                    {product.name}
                   </h3>
                   <p className="text-gray-600 text-sm mb-4 line-clamp-2">
-                    {product.product?.description || "No description"}
+                    {product.description || "No description"}
                   </p>
                   
                   <div className="flex justify-between items-center mb-4">
                     <div>
-                      <p className="text-2xl font-bold text-purple-600">₹{product.product?.price}</p>
+                      <p className="text-2xl font-bold text-purple-600">₹{product.price}</p>
                       <p className="text-sm text-gray-500">Stock: {product.stock_quantity}</p>
                     </div>
                     <div className="text-right">
                       <p className="text-xs text-gray-500">Category</p>
-                      <p className="text-sm font-semibold text-gray-700">{product.product?.category?.name}</p>
+                      <p className="text-sm font-semibold text-gray-700">{product.category || 'N/A'}</p>
                     </div>
                   </div>
 

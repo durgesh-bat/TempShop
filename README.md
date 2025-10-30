@@ -16,7 +16,8 @@ A modern full-stack e-commerce platform built with Django REST Framework and Rea
 ## ✨ Features
 
 ### User Features
-- 🔐 JWT Authentication with email verification
+- 🔐 JWT + CSRF Token Authentication (HttpOnly cookies)
+- ✉️ Email verification with OTP
 - 📧 OTP-based email verification
 - 👤 User profiles with avatar upload
 - 🛒 Shopping cart management
@@ -32,16 +33,25 @@ A modern full-stack e-commerce platform built with Django REST Framework and Rea
 
 ### Admin Features
 - 📊 Admin dashboard
-- 🏪 Shopkeeper portal
+- 🏪 Multi-vendor marketplace
 - 📦 Product management
 - 🏷️ Category management
 - 📈 Order management
+
+### Shopkeeper Features
+- 🏪 Shopkeeper portal & dashboard
+- 📦 Product inventory management
+- 📊 Stock tracking & alerts
+- 💰 Revenue & commission tracking
+- 📋 Customer order management
+- 📈 Sales analytics
 
 ### Technical Features
 - 🎨 Modern UI with Tailwind CSS
 - 🌙 Dark mode support
 - 📱 Fully responsive design
 - 🔒 Secure authentication
+- 🛡️ Rate limiting & throttling
 - 📧 Professional HTML email templates
 - ☁️ Cloudinary image storage
 - 🗄️ MySQL/PostgreSQL support
@@ -49,6 +59,7 @@ A modern full-stack e-commerce platform built with Django REST Framework and Rea
 - 💾 Client-side caching
 - 🎯 Category showcase cards
 - 🔗 Dynamic routing with filters
+- 🔔 Comprehensive notification system
 
 ---
 
@@ -178,9 +189,15 @@ npm run dev
 ## 📚 Documentation
 
 ### Main Documentation
+- **[DOCUMENTATION_INDEX.md](DOCUMENTATION_INDEX.md)** - 📚 Complete documentation index
+- **[SHOPKEEPER_GUIDE.md](SHOPKEEPER_GUIDE.md)** - 🏪 Multi-vendor & shopkeeper system guide
+- **[JWT_CSRF_AUTH.md](Docs/JWT_CSRF_AUTH.md)** - JWT + CSRF authentication guide
 - **[SECURITY.md](Docs/SECURITY.md)** - Security guidelines & best practices
+- **[RATE_LIMITING.md](Docs/RATE_LIMITING.md)** - Rate limiting & throttling guide
 - **[OTP_VERIFICATION.md](Docs/OTP_VERIFICATION.md)** - OTP feature documentation
 - **[EMAIL_TEMPLATES_GUIDE.md](Docs/EMAIL_TEMPLATES_GUIDE.md)** - Email template customization
+- **[NOTIFICATION_SYSTEM.md](Docs/NOTIFICATION_SYSTEM.md)** - Notification system guide
+- **[NOTIFICATION_QUICK_REFERENCE.md](Docs/NOTIFICATION_QUICK_REFERENCE.md)** - Quick notification reference
 
 ### Quick Guides
 - **[QUICK_START_OTP.md](Docs/QUICK_START_OTP.md)** - OTP setup guide
@@ -236,6 +253,7 @@ npm test
 
 ## 📦 Database Seeding
 
+### Seed Products
 Seed categories and products from external API:
 ```bash
 python manage.py seed
@@ -246,6 +264,22 @@ This will:
 2. Fetch all products and link to categories
 3. Skip products without images
 4. Upload images to Cloudinary
+
+### Seed Shopkeepers
+Create 10 shopkeepers with products:
+```bash
+python manage.py seed_shopkeepers
+```
+
+Or use the setup script:
+```bash
+Scripts\setup_shopkeepers.bat
+```
+
+This creates shopkeepers with:
+- Random product assignments (5-15 products each)
+- Stock quantities (10-100 units)
+- Default password: `shopkeeper123`
 
 ---
 
@@ -268,6 +302,8 @@ See [Scripts/README.md](Scripts/README.md) for details.
 - `POST /api/auth/login/` - User login
 - `POST /api/auth/send-otp/` - Send OTP
 - `POST /api/auth/verify-otp/` - Verify OTP
+- `POST /api/shopkeeper/register/` - Shopkeeper registration
+- `POST /api/shopkeeper/login/` - Shopkeeper login
 
 ### Products
 - `GET /api/products/` - List all products
@@ -288,6 +324,14 @@ See [Scripts/README.md](Scripts/README.md) for details.
 - `GET /api/auth/profile/` - User profile
 - `PATCH /api/auth/profile/` - Update profile
 - `GET /api/auth/orders/` - Order history
+
+### Shopkeeper
+- `GET /api/shopkeeper/dashboard/` - Dashboard stats
+- `GET /api/shopkeeper/products/` - Shopkeeper products
+- `POST /api/shopkeeper/products/` - Add product
+- `GET /api/shopkeeper/customer-orders/` - Customer orders
+- `GET /api/shopkeeper/inventory/` - Inventory overview
+- `PATCH /api/shopkeeper/inventory/{id}/stock/` - Update stock
 
 ---
 
