@@ -36,70 +36,48 @@ def upload_to_cloudinary(image_url, folder, public_id):
         return None
 
 def seed_categories():
-    """Fetch and save categories with images"""
+    """Fetch and save categories from dummyjson"""
     try:
-        response = requests.get('https://api.escuelajs.co/api/v1/categories')
+        response = requests.get('https://dummyjson.com/products/categories')
         response.raise_for_status()
         categories = response.json()
         
         for cat in categories:
             cat_slug = cat.get('slug') or slugify(cat.get('name', 'others'))
-            category = Category.objects.filter(slug=cat_slug).first()
-            
-            if category:
-                # Update only image
-                if cat.get('image'):
-                    cloudinary_id = upload_to_cloudinary(
-                        cat['image'],
-                        'categories',
-                        f"category_{cat_slug}"
-                    )
-                    if cloudinary_id:
-                        category.image = cloudinary_id
-                        category.save()
-                        print(f"✅ Updated category image: {category.name}")
-            else:
-                # Create new category
-                cat_image = None
-                if cat.get('image'):
-                    cat_image = upload_to_cloudinary(
-                        cat['image'],
-                        'categories',
-                        f"category_{cat_slug}"
-                    )
-                category = Category.objects.create(
+            if not Category.objects.filter(slug=cat_slug).exists():
+                Category.objects.create(
                     name=cat.get('name', 'Others'),
-                    slug=cat_slug,
-                    image=cat_image
+                    slug=cat_slug
                 )
-                print(f"✅ Created category: {category.name}")
+                print(f"✅ Created category: {cat.get('name')}")
     except Exception as e:
         print(f"❌ Error fetching categories: {e}")
 
 def seed_products():
-    """Fetch products from API"""
+    """Fetch products from dummyjson API"""
     try:
-        response = requests.get('https://api.escuelajs.co/api/v1/products/')
+        response = requests.get('https://dummyjson.com/products?limit=100')
         response.raise_for_status()
-        products = response.json()
+        data = response.json()
+        products = data.get('products', [])
         
         for prod in products:
             try:
                 # Skip if no images
                 if not prod.get('images') or len(prod['images']) == 0:
+                    print(f"⚠️ Skipping {prod.get('title')} - no images")
                     continue
                 
-                slug = prod.get('slug') or slugify(prod['title'])
+                slug = slugify(prod['title'])
                 if Product.objects.filter(slug=slug).exists():
                     continue
                 
-                # Get category by slug
-                cat_data = prod.get('category', {})
-                cat_slug = cat_data.get('slug') or slugify(cat_data.get('name', 'others'))
-                category = Category.objects.filter(slug=cat_slug).first()
-                
-                if not category:
-                    continue
+                # Get or create category
+                cat_slug = slugify(prod.get('category', 'others'))
+                category, _ = Category.objects.get_or_create(
+                    slug=cat_slug,
+                    defaults={'name': prod.get('category', 'Others').title()}
+                )
                 
                 # Create product
                 product = Product.objects.create(
@@ -127,7 +105,7 @@ def seed_products():
                 
                 print(f"✅ Created: {product.name}")
             except Exception as e:
-                print(f"❌ Error: {e}")
+                print(f"❌ Error creating {prod.get('title', 'product')}: {e}")
     except Exception as e:
         print(f"❌ Error fetching products: {e}")
 

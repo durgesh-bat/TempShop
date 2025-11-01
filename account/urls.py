@@ -42,4 +42,9 @@ urlpatterns = [
     path('verify-email/<str:token>/', views.verify_email, name='verify-email'),
     path('send-otp/', views.send_otp, name='send-otp'),
     path('verify-otp/', views.verify_otp, name='verify-otp'),
+
+    path('notifications/', views.NotificationView.as_view(), name='notifications'),
+    path('notifications/<int:pk>/read/', views.mark_notification_read, name='mark-notification-read'),
+    path('notifications/mark-all-read/', views.mark_all_notifications_read, name='mark-all-notifications-read'),
+    path('notifications/<int:pk>/', views.delete_notification, name='delete-notification'),
 ]

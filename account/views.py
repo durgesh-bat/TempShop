@@ -7,8 +7,8 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from django.middleware.csrf import get_token
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.http import HttpResponse
-from .models import Client, Address, Wallet, PaymentMethod, Order, Review, Wishlist
-from .serializers import RegisterSerializer, ClientSerializer, LoginSerializer, AddressSerializer, WalletSerializer, PaymentMethodSerializer, OrderSerializer, ReviewSerializer, WishlistSerializer
+from .models import Client, Address, Wallet, PaymentMethod, Order, Review, Wishlist, Notification
+from .serializers import RegisterSerializer, ClientSerializer, LoginSerializer, AddressSerializer, WalletSerializer, PaymentMethodSerializer, OrderSerializer, ReviewSerializer, WishlistSerializer, NotificationSerializer
 from .validators import validate_otp, validate_email
 from rest_framework.views import APIView
 from rest_framework.parsers import MultiPartParser, FormParser
@@ -65,7 +65,8 @@ def register_user(request):
         tokens = get_tokens_for_user(user)
         response = Response({
             "user": ClientSerializer(user).data,
-            "message": "Registration successful! Please check your email to verify your account."
+            "message": "Registration successful! Please check your email to verify your account.",
+            "access_token": tokens['access']
         }, status=status.HTTP_201_CREATED)
         
         response.set_cookie(
@@ -104,7 +105,8 @@ def login_user(request):
             tokens = get_tokens_for_user(user)
             response_data = {
                 "user": ClientSerializer(user).data,
-                "message": "Login successful"
+                "message": "Login successful",
+                "access_token": tokens['access']
             }
             if not user.is_email_verified:
                 response_data["message"] = "Email not verified. Please verify your email."
@@ -137,7 +139,6 @@ def login_user(request):
 
 class ProfileView(APIView):
     permission_classes = [IsAuthenticated]
-    parser_classes = [MultiPartParser, FormParser]
 
     def get(self, request):
         serializer = ClientSerializer(request.user)
@@ -148,22 +149,20 @@ class ProfileView(APIView):
         
         user = request.user
         try:
-            if 'username' in request.data:
+            if 'username' in request.data and request.data['username']:
                 user.username = validate_username(request.data['username'])
-            if 'email' in request.data:
+            if 'email' in request.data and request.data['email']:
                 user.email = validate_email(request.data['email'])
             if 'first_name' in request.data:
-                user.first_name = validate_text_input(request.data['first_name'], 'First name', 30)
+                user.first_name = validate_text_input(request.data['first_name'], 'First name', 30) if request.data['first_name'] else ''
             if 'last_name' in request.data:
-                user.last_name = validate_text_input(request.data['last_name'], 'Last name', 30)
-            if 'phone_number' in request.data:
+                user.last_name = validate_text_input(request.data['last_name'], 'Last name', 30) if request.data['last_name'] else ''
+            if 'phone_number' in request.data and request.data['phone_number']:
                 user.phone_number = validate_phone(request.data['phone_number'])
             if 'profile_picture' in request.FILES:
                 file = request.FILES['profile_picture']
-                # Validate file size (max 5MB)
                 if file.size > 5 * 1024 * 1024:
                     return Response({"error": "File size exceeds 5MB"}, status=status.HTTP_400_BAD_REQUEST)
-                # Validate file type
                 allowed_types = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']
                 if file.content_type not in allowed_types:
                     return Response({"error": "Invalid file type. Only images allowed"}, status=status.HTTP_400_BAD_REQUEST)
@@ -635,3 +634,36 @@ def refresh_token(request):
         return response
     except Exception as e:
         return Response({'error': 'Invalid refresh token'}, status=status.HTTP_401_UNAUTHORIZED)
+
+
+class NotificationView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        notifications = request.user.notifications.all()
+        serializer = NotificationSerializer(notifications, many=True)
+        return Response(serializer.data)
+
+
+@api_view(['PATCH'])
+@permission_classes([IsAuthenticated])
+def mark_notification_read(request, pk):
+    notification = get_object_or_404(Notification, pk=pk, user=request.user)
+    notification.is_read = True
+    notification.save()
+    return Response({'message': 'Marked as read'})
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def mark_all_notifications_read(request):
+    request.user.notifications.filter(is_read=False).update(is_read=True)
+    return Response({'message': 'All notifications marked as read'})
+
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def delete_notification(request, pk):
+    notification = get_object_or_404(Notification, pk=pk, user=request.user)
+    notification.delete()
+    return Response(status=status.HTTP_204_NO_CONTENT)

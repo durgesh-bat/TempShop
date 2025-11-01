@@ -31,13 +31,15 @@ SECRET_KEY = os.getenv('SECRET_KEY')
 
 DEBUG = True
 
-ALLOWED_HOSTS = ['localhost','127.0.0.1','temp-shop-phi.vercel.app']
+ALLOWED_HOSTS = ['localhost','127.0.0.1','temp-shop-phi.vercel.app', '7743105dc1df.ngrok-free.app']
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
     "https://temp-shop-phi.vercel.app",
     "http://localhost:8000",
     "http://127.0.0.1:8000",
+    "http://localhost:51348",
+    "https://7743105dc1df.ngrok-free.app"
 ]
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_HEADERS = [
@@ -115,34 +117,35 @@ ASGI_APPLICATION = 'server.asgi.application'
 #     }
 # }
 
-# Validate required environment variables
+# Validate required environment variables for MySQL
 required_db_vars = ['DB_NAME', 'DB_USER', 'DB_PASSWORD', 'DB_HOST']
 for var in required_db_vars:
     if not os.getenv(var):
         raise ValueError(f"Required environment variable {var} is not set")
 
-
-# DATABASES = {
-#         'default': {
-#             'ENGINE': 'django.db.backends.mysql',
-#             'NAME': os.getenv('DB_NAME'),
-#             'USER': os.getenv('DB_USER'),
-#             'PASSWORD': os.getenv('DB_PASSWORD'),
-#             'HOST': os.getenv('DB_HOST'),  # Or the IP address/hostname of your MySQL server
-#             'PORT': '3306',       # Default MySQL port
-#         }
-#     }
-
+# MySQL Database Configuration
 DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.postgresql',
-            'NAME': os.getenv('PSQL_DB'),
-            'USER': os.getenv('PSQL_USER'),
-            'PASSWORD': os.getenv('PSQL_PASSWORD'),
-            'HOST': os.getenv('PSQL_HOST'),  # Or the IP address/hostname of your MySQL server
-            'PORT': os.getenv('PSQL_PORT'),       # Default MySQL port
-        }
+    'default': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': os.getenv('DB_NAME'),
+        'USER': os.getenv('DB_USER'),
+        'PASSWORD': os.getenv('DB_PASSWORD'),
+        'HOST': os.getenv('DB_HOST'),
+        'PORT': os.getenv('DB_PORT', '3306'),
+    }
 }
+
+# PostgreSQL Configuration (Supabase) - Uncomment to use
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.postgresql',
+#         'NAME': os.getenv('PSQL_DB'),
+#         'USER': os.getenv('PSQL_USER'),
+#         'PASSWORD': os.getenv('PSQL_PASSWORD'),
+#         'HOST': os.getenv('PSQL_HOST'),
+#         'PORT': os.getenv('PSQL_PORT', '5432'),
+#     }
+# }
 
 
 # Password validation
@@ -244,6 +247,12 @@ CSRF_TRUSTED_ORIGINS = [
     "http://127.0.0.1:5173",
     "http://localhost:8000",
     "http://127.0.0.1:8000",
+    "http://localhost:65010",
+    "http://localhost:52000",
+    "http://localhost:52001",
+    "http://localhost:52002",
+    "http://localhost:51348",
+    "https://7743105dc1df.ngrok-free.app"
 ]
 CSRF_COOKIE_NAME = 'csrftoken'
 SESSION_COOKIE_SAMESITE = 'Lax'

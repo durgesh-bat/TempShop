@@ -43,6 +43,15 @@ class CartView(APIView):
                 cart_item.quantity += quantity
                 cart_item.save()
 
+            # Create notification
+            from account.models import Notification
+            Notification.objects.create(
+                user=request.user,
+                title="Added to Cart",
+                message=f"{product.name} has been added to your cart",
+                type="cart"
+            )
+
             return Response({
                 "message": f"{product.name} added to cart",
                 "quantity": cart_item.quantity

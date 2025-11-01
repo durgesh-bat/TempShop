@@ -1,0 +1,16 @@
+I/AssistStructure(29336): Flattened final assist data: 384 bytes, containing 1 windows, 3 views
+D/InputConnectionAdaptor(29336): The input method toggled cursor monitoring on
+D/InsetsController(29336): show(ime(), fromIme=true)
+I/gralloc4(29336): @set_metadata: update dataspace from GM (0x00000000 -> 0x08010000)
+I/gralloc4(29336): @set_metadata: update dataspace from GM (0x00000000 -> 0x08010000)
+I/gralloc4(29336): @set_metadata: update dataspace from GM (0x00000000 -> 0x08010000)
+I/gralloc4(29336): @set_metadata: update dataspace from GM (0x00000000 -> 0x08010000)
+I/gralloc4(29336): @set_metadata: update dataspace from GM (0x00000000 -> 0x08010000)
+I/gralloc4(29336): @set_metadata: update dataspace from GM (0x00000000 -> 0x08010000)
+I/gralloc4(29336): @set_metadata: update dataspace from GM (0x00000000 -> 0x08010000)
+I/gralloc4(29336): @set_metadata: update dataspace from GM (0x00000000 -> 0x08010000)
+I/gralloc4(29336): @set_metadata: update dataspace from GM (0x00000000 -> 0x08010000)
+I/gralloc4(29336): @set_metadata: update dataspace from GM (0x00000000 -> 0x08010000)
+I/gralloc4(29336): @set_metadata: update dataspace from GM (0x00000000 -> 0x08010000)
+I/ImeTracker(29336): com.example.tempshop:94ea273b: onShown
+I/gralloc4(29336): @set_metadata: update dataspace from GM (0x00000000 -> 0x08010000)

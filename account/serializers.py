@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Client, Address, Wallet, PaymentMethod, Order, OrderItem, Review, Wishlist
+from .models import Client, Address, Wallet, PaymentMethod, Order, OrderItem, Review, Wishlist, Notification
 from product.serializers import ProductSerializer
 from .validators import validate_email, validate_username, validate_phone, validate_text_input
 
@@ -140,3 +140,10 @@ class WishlistSerializer(serializers.ModelSerializer):
         model = Wishlist
         fields = ['id', 'product', 'added_at']
         read_only_fields = ['id', 'added_at']
+
+
+class NotificationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Notification
+        fields = ['id', 'title', 'message', 'type', 'is_read', 'created_at']
+        read_only_fields = ['id', 'created_at']
