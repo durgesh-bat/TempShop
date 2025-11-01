@@ -3,7 +3,7 @@ from rest_framework.throttling import AnonRateThrottle, UserRateThrottle
 
 class LoginRateThrottle(AnonRateThrottle):
     """Strict throttling for login attempts"""
-    rate = '5/hour'
+    rate = '10/hour'
 
 
 class RegisterRateThrottle(AnonRateThrottle):

@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { LOCALHOST_BASE_URL } from '../utils/baseURL'
 
 const BASE_URL = "http://localhost:8000/api";
 

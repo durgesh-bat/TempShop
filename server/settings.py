@@ -26,17 +26,18 @@ CLOUDINARY_STORAGE = {
 DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
 STATICFILES_STORAGE = 'cloudinary_storage.storage.StaticCloudinaryStorage'
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 SECRET_KEY = os.getenv('SECRET_KEY')
 
 DEBUG = True
 
-ALLOWED_HOSTS = ['localhost','127.0.0.1']
+ALLOWED_HOSTS = ['localhost','127.0.0.1','temp-shop-phi.vercel.app']
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
+    "https://temp-shop-phi.vercel.app",
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
 ]
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_HEADERS = [
@@ -121,27 +122,27 @@ for var in required_db_vars:
         raise ValueError(f"Required environment variable {var} is not set")
 
 
-DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.mysql',
-            'NAME': os.getenv('DB_NAME'),
-            'USER': os.getenv('DB_USER'),
-            'PASSWORD': os.getenv('DB_PASSWORD'),
-            'HOST': os.getenv('DB_HOST'),  # Or the IP address/hostname of your MySQL server
-            'PORT': '3306',       # Default MySQL port
-        }
-    }
-
 # DATABASES = {
 #         'default': {
-#             'ENGINE': 'django.db.backends.postgresql',
-#             'NAME': os.getenv('PSQL_DB'),
-#             'USER': os.getenv('PSQL_USER'),
-#             'PASSWORD': os.getenv('PSQL_PASSWORD'),
-#             'HOST': os.getenv('PSQL_HOST'),  # Or the IP address/hostname of your MySQL server
-#             'PORT': os.getenv('PSQL_PORT'),       # Default MySQL port
+#             'ENGINE': 'django.db.backends.mysql',
+#             'NAME': os.getenv('DB_NAME'),
+#             'USER': os.getenv('DB_USER'),
+#             'PASSWORD': os.getenv('DB_PASSWORD'),
+#             'HOST': os.getenv('DB_HOST'),  # Or the IP address/hostname of your MySQL server
+#             'PORT': '3306',       # Default MySQL port
 #         }
-# }
+#     }
+
+DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': os.getenv('PSQL_DB'),
+            'USER': os.getenv('PSQL_USER'),
+            'PASSWORD': os.getenv('PSQL_PASSWORD'),
+            'HOST': os.getenv('PSQL_HOST'),  # Or the IP address/hostname of your MySQL server
+            'PORT': os.getenv('PSQL_PORT'),       # Default MySQL port
+        }
+}
 
 
 # Password validation
@@ -202,7 +203,7 @@ REST_FRAMEWORK = {
         'user': '5000/hour',
         'burst': '500/minute',
         'sustained': '5000/hour',
-        'login': '10/hour',
+        'login': '15/hour',
         'register': '10/hour',
         'otp': '5/hour',
     },
