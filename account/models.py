@@ -26,6 +26,7 @@ class Client(AbstractUser):
     email_otp = models.CharField(max_length=6, blank=True, null=True)
     otp_created_at = models.DateTimeField(blank=True, null=True)
     
+    
     groups = models.ManyToManyField(
         'auth.Group',
         related_name='client_set',

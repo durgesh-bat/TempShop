@@ -61,6 +61,7 @@ class AuthService {
           'success': true,
           'token': data['access_token'],
           'user': data['user'],
+          'email_verified': data['email_verified'] ?? true,
         };
       }
 
@@ -95,35 +96,51 @@ class AuthService {
     File? image,
   ) async {
     try {
-      if (image != null) {
-        var request = http.MultipartRequest(
-          'PATCH',
-          Uri.parse('$baseUrl/profile/'),
-        );
-        request.headers['Authorization'] = 'Bearer $token';
-        request.files.add(await http.MultipartFile.fromPath('profile_picture', image.path));
-        
-        final response = await request.send();
-        if (response.statusCode == 200) {
-          return {'success': true};
-        }
-        return {'success': false, 'message': 'Failed to upload image'};
-      }
-
-      final response = await http.patch(
+      var request = http.MultipartRequest(
+        'PATCH',
         Uri.parse('$baseUrl/profile/'),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
-        body: json.encode(data),
       );
-
+      request.headers['Authorization'] = 'Bearer $token';
+      
+      if (image != null) {
+        request.files.add(await http.MultipartFile.fromPath('profile_picture', image.path));
+      }
+      
+      // Add form fields with strict sanitization
+      data.forEach((key, value) {
+        if (value != null && value.toString().trim().isNotEmpty) {
+          String cleanValue = value.toString().trim();
+          
+          // Remove all potentially dangerous characters
+          cleanValue = cleanValue
+              .replaceAll(RegExp(r'[\r\n\t]'), '')
+              .replaceAll(RegExp(r'[<>"%;()&+=\\|`~!#\$\^\*\[\]{}]'), '')
+              .replaceAll(RegExp(r'\b(SELECT|INSERT|UPDATE|DELETE|DROP|CREATE|ALTER|EXEC|UNION|SCRIPT)\b', caseSensitive: false), '');
+          
+          // Additional email validation
+          if (key == 'email' && cleanValue.isNotEmpty) {
+            if (!RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$').hasMatch(cleanValue)) {
+              return; // Skip invalid email
+            }
+          }
+          
+          if (cleanValue.isNotEmpty) {
+            request.fields[key] = cleanValue;
+          }
+        }
+      });
+      
+      final response = await request.send();
+      final responseBody = await response.stream.bytesToString();
+      
       if (response.statusCode == 200) {
         return {'success': true};
       }
-      return {'success': false, 'message': 'Failed to update profile'};
+      
+      print('Profile update error (${response.statusCode}): $responseBody');
+      return {'success': false, 'message': 'Update failed: ${response.statusCode}'};
     } catch (e) {
+      print('Profile update exception: $e');
       return {'success': false, 'message': 'Network error: $e'};
     }
   }

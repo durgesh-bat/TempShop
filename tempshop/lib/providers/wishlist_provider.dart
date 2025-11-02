@@ -11,7 +11,12 @@ class WishlistProvider with ChangeNotifier {
 
   void setToken(String? token) {
     _token = token;
-    if (token != null) syncWithBackend();
+    if (token != null) {
+      syncWithBackend();
+    } else {
+      _items.clear();
+      notifyListeners();
+    }
   }
 
   Future<void> syncWithBackend() async {
@@ -43,23 +48,29 @@ class WishlistProvider with ChangeNotifier {
     return _items.any((item) => item.id == productId);
   }
 
+  Future<bool> removeFromWishlist(int productId) async {
+    if (_token == null) return false;
+    try {
+      final response = await http.delete(
+        Uri.parse('$baseUrl/wishlist/product/$productId/'),
+        headers: {'Authorization': 'Bearer $_token'},
+      );
+      if (response.statusCode == 204 || response.statusCode == 200) {
+        _items.removeWhere((item) => item.id == productId);
+        notifyListeners();
+        return true;
+      }
+    } catch (e) {
+      print('Error removing from wishlist: $e');
+    }
+    return false;
+  }
+
   Future<bool> toggle(Product product) async {
     if (_token == null) return false;
     
     if (isInWishlist(product.id)) {
-      try {
-        final response = await http.delete(
-          Uri.parse('$baseUrl/wishlist/product/${product.id}/'),
-          headers: {'Authorization': 'Bearer $_token'},
-        );
-        if (response.statusCode == 204 || response.statusCode == 200) {
-          _items.removeWhere((item) => item.id == product.id);
-          notifyListeners();
-          return true;
-        }
-      } catch (e) {
-        print('Error removing from wishlist: $e');
-      }
+      return await removeFromWishlist(product.id);
     } else {
       try {
         final response = await http.post(

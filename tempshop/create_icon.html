@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>DealsBasket Icon Generator</title>
+</head>
+<body>
+    <canvas id="iconCanvas" width="1024" height="1024" style="border: 1px solid #ccc;"></canvas>
+    <br>
+    <button onclick="downloadIcon()">Download Icon</button>
+    
+    <script>
+        const canvas = document.getElementById('iconCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Create gradient background
+        const gradient = ctx.createLinearGradient(0, 0, 1024, 1024);
+        gradient.addColorStop(0, '#FF6B6B');
+        gradient.addColorStop(1, '#4ECDC4');
+        
+        // Fill background
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, 1024, 1024);
+        
+        // Draw shopping basket
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = 'bold 400px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('🛒', 512, 512);
+        
+        // Add text
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = 'bold 80px Arial';
+        ctx.fillText('DealsBasket', 512, 750);
+        
+        function downloadIcon() {
+            const link = document.createElement('a');
+            link.download = 'dealsbasket_icon_1024.png';
+            link.href = canvas.toDataURL();
+            link.click();
+        }
+    </script>
+</body>
+</html>

@@ -6,6 +6,7 @@ import 'providers/auth_provider.dart';
 import 'providers/notification_provider.dart';
 import 'screens/main_screen.dart';
 import 'screens/wishlist_screen.dart';
+import 'screens/otp_verification_screen.dart';
 import 'utils/theme.dart';
 
 void main() async {
@@ -44,7 +45,7 @@ class MyApp extends StatelessWidget {
         ),
       ],
       child: MaterialApp(
-        title: 'TempShop',
+        title: 'DealsBasket',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.lightTheme,
         darkTheme: AppTheme.darkTheme,
@@ -52,6 +53,7 @@ class MyApp extends StatelessWidget {
         home: const MainScreen(),
         routes: {
           '/wishlist': (context) => const WishlistScreen(),
+          '/otp-verification': (context) => const OtpVerificationScreen(),
         },
       ),
     );

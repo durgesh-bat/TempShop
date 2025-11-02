@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../providers/auth_provider.dart';
 import 'orders_screen.dart';
 import 'addresses_screen.dart';
 import 'edit_profile_screen.dart';
 import 'wallet_screen.dart';
 import 'notifications_screen.dart';
+import 'terms_of_service_screen.dart';
+import 'privacy_policy_screen.dart';
+import 'help_center_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -50,18 +54,47 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         const SizedBox(height: 40),
-                        CircleAvatar(
-                          radius: 45,
-                          backgroundColor: Colors.white,
-                          child: Text(
-                            (auth.username ?? 'U')[0].toUpperCase(),
-                            style: const TextStyle(
-                              fontSize: 36,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF2563EB),
-                            ),
-                          ),
-                        ),
+                        auth.profilePicture != null && auth.profilePicture!.isNotEmpty
+                            ? ClipOval(
+                                child: CachedNetworkImage(
+                                  imageUrl: auth.profilePicture!,
+                                  width: 90,
+                                  height: 90,
+                                  fit: BoxFit.cover,
+                                  placeholder: (context, url) => CircleAvatar(
+                                    radius: 45,
+                                    backgroundColor: Colors.white,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Color(0xFF2563EB),
+                                    ),
+                                  ),
+                                  errorWidget: (context, url, error) => CircleAvatar(
+                                    radius: 45,
+                                    backgroundColor: Colors.white,
+                                    child: Text(
+                                      (auth.username ?? 'U')[0].toUpperCase(),
+                                      style: const TextStyle(
+                                        fontSize: 36,
+                                        fontWeight: FontWeight.bold,
+                                        color: Color(0xFF2563EB),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              )
+                            : CircleAvatar(
+                                radius: 45,
+                                backgroundColor: Colors.white,
+                                child: Text(
+                                  (auth.username ?? 'U')[0].toUpperCase(),
+                                  style: const TextStyle(
+                                    fontSize: 36,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFF2563EB),
+                                  ),
+                                ),
+                              ),
                         const SizedBox(height: 12),
                         Text(
                           auth.username ?? 'Guest User',
@@ -199,7 +232,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         icon: Icons.help_outline,
                         title: 'Help Center',
                         subtitle: 'Get help and support',
-                        onTap: () {},
+                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const HelpCenterScreen())),
+                      ),
+                      const Divider(height: 1),
+                      _buildMenuItem(
+                        icon: Icons.description_outlined,
+                        title: 'Terms of Service',
+                        subtitle: 'Read our terms',
+                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TermsOfServiceScreen())),
+                      ),
+                      const Divider(height: 1),
+                      _buildMenuItem(
+                        icon: Icons.privacy_tip_outlined,
+                        title: 'Privacy Policy',
+                        subtitle: 'Read our privacy policy',
+                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PrivacyPolicyScreen())),
                       ),
                       const Divider(height: 1),
                       _buildMenuItem(

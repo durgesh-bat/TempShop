@@ -17,6 +17,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   bool _isLoading = false;
+  bool _obscurePassword = true;
+  bool _obscureConfirmPassword = true;
   String? _errorMessage;
 
   Future<void> _register() async {
@@ -46,10 +48,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (result['success']) {
       if (mounted) {
         final user = result['user'] ?? {};
-        Provider.of<AuthProvider>(context, listen: false).login(
+        await Provider.of<AuthProvider>(context, listen: false).login(
           result['token'],
           username: user['username'] ?? _usernameController.text.trim(),
           email: user['email'] ?? _emailController.text.trim(),
+          profilePicture: user['profile_picture'],
         );
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
@@ -273,6 +276,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   Widget _buildTextField(String label, TextEditingController controller, bool isPassword, {bool isEmail = false}) {
+    bool obscureText = isPassword;
+    if (isPassword) {
+      obscureText = label == 'Password' ? _obscurePassword : _obscureConfirmPassword;
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -287,7 +295,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         const SizedBox(height: 8),
         TextFormField(
           controller: controller,
-          obscureText: isPassword,
+          obscureText: obscureText,
           keyboardType: isEmail ? TextInputType.emailAddress : TextInputType.text,
           style: const TextStyle(color: Colors.black),
           decoration: InputDecoration(
@@ -306,6 +314,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
               borderSide: const BorderSide(color: Color(0xFF3B82F6), width: 2),
             ),
             contentPadding: const EdgeInsets.all(16),
+            suffixIcon: isPassword ? IconButton(
+              icon: Icon(
+                obscureText ? Icons.visibility : Icons.visibility_off,
+                color: const Color(0xFF6B7280),
+              ),
+              onPressed: () => setState(() {
+                if (label == 'Password') {
+                  _obscurePassword = !_obscurePassword;
+                } else {
+                  _obscureConfirmPassword = !_obscureConfirmPassword;
+                }
+              }),
+            ) : null,
           ),
           validator: (value) {
             if (value?.isEmpty == true) return '$label is required';

@@ -24,7 +24,7 @@ class WalletService {
   Future<Map<String, dynamic>> getTransactions(String token) async {
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/wallet/transactions/'),
+        Uri.parse('${ApiConfig.baseUrl}/wallet/transactions/'),
         headers: {'Authorization': 'Bearer $token'},
       );
 

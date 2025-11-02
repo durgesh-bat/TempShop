@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../providers/auth_provider.dart';
 import '../services/auth_service.dart';
 
@@ -19,6 +20,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   late TextEditingController _emailController;
   late TextEditingController _phoneController;
   File? _imageFile;
+  String? _currentImageUrl;
   bool _loading = false;
   final ImagePicker _picker = ImagePicker();
 
@@ -46,6 +48,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         _lastNameController.text = data['last_name'] ?? '';
         _emailController.text = data['email'] ?? '';
         _phoneController.text = data['phone_number'] ?? '';
+        _currentImageUrl = data['profile_picture'];
       });
     }
   }
@@ -120,39 +123,20 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     if (_emailController.text.isNotEmpty) data['email'] = _emailController.text;
     if (_phoneController.text.isNotEmpty) data['phone_number'] = _phoneController.text;
     
-    final result = await AuthService().updateProfile(auth.token!, data, null);
+    final result = await AuthService().updateProfile(auth.token!, data, _imageFile);
     if (!mounted) return;
     
-    if (result['success'] && _imageFile != null) {
-      final imageResult = await AuthService().updateProfile(auth.token!, {}, _imageFile);
-      if (!mounted) return;
-      setState(() => _loading = false);
-      if (imageResult['success']) {
-        await auth.checkAuthStatus();
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Profile updated successfully'), backgroundColor: Colors.green),
-        );
-      } else {
-        await auth.checkAuthStatus();
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Text updated. Image: ${imageResult['message']}')),
-        );
-      }
+    setState(() => _loading = false);
+    if (result['success']) {
+      await auth.checkAuthStatus();
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Profile updated successfully'), backgroundColor: Colors.green),
+      );
     } else {
-      setState(() => _loading = false);
-      if (result['success']) {
-        await auth.checkAuthStatus();
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Profile updated successfully'), backgroundColor: Colors.green),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(result['message'])),
-        );
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(result['message'])),
+      );
     }
   }
 
@@ -202,19 +186,52 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       children: [
                         Stack(
                           children: [
-                            CircleAvatar(
-                              radius: 60,
-                              backgroundColor: const Color(0xFF2563EB),
-                              backgroundImage: _imageFile != null ? FileImage(_imageFile!) : null,
-                              child: _imageFile == null
-                                  ? Consumer<AuthProvider>(
-                                      builder: (context, auth, _) => Text(
-                                        (auth.username ?? 'U')[0].toUpperCase(),
-                                        style: const TextStyle(fontSize: 48, fontWeight: FontWeight.bold, color: Colors.white),
+                            _imageFile != null
+                                ? ClipOval(
+                                    child: Image.file(
+                                      _imageFile!,
+                                      width: 120,
+                                      height: 120,
+                                      fit: BoxFit.cover,
+                                    ),
+                                  )
+                                : (_currentImageUrl != null && _currentImageUrl!.isNotEmpty)
+                                    ? ClipOval(
+                                        child: CachedNetworkImage(
+                                          imageUrl: _currentImageUrl!,
+                                          width: 120,
+                                          height: 120,
+                                          fit: BoxFit.cover,
+                                          placeholder: (context, url) => CircleAvatar(
+                                            radius: 60,
+                                            backgroundColor: const Color(0xFF2563EB),
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                          errorWidget: (context, url, error) => CircleAvatar(
+                                            radius: 60,
+                                            backgroundColor: const Color(0xFF2563EB),
+                                            child: Consumer<AuthProvider>(
+                                              builder: (context, auth, _) => Text(
+                                                (auth.username ?? 'U')[0].toUpperCase(),
+                                                style: const TextStyle(fontSize: 48, fontWeight: FontWeight.bold, color: Colors.white),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      )
+                                    : CircleAvatar(
+                                        radius: 60,
+                                        backgroundColor: const Color(0xFF2563EB),
+                                        child: Consumer<AuthProvider>(
+                                          builder: (context, auth, _) => Text(
+                                            (auth.username ?? 'U')[0].toUpperCase(),
+                                            style: const TextStyle(fontSize: 48, fontWeight: FontWeight.bold, color: Colors.white),
+                                          ),
+                                        ),
                                       ),
-                                    )
-                                  : null,
-                            ),
                             Positioned(
                               bottom: 0,
                               right: 0,

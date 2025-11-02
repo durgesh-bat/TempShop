@@ -30,9 +30,10 @@ class SecurityMiddleware:
         ]
     
     def __call__(self, request):
-        # Check request body for attacks
+        # Check request body for attacks (skip multipart data)
         if request.method in ['POST', 'PUT', 'PATCH']:
-            if hasattr(request, 'body') and request.body:
+            content_type = request.META.get('CONTENT_TYPE', '')
+            if hasattr(request, 'body') and request.body and 'multipart/form-data' not in content_type:
                 body_str = request.body.decode('utf-8', errors='ignore').lower()
                 
                 # Check for SQL injection
@@ -58,6 +59,9 @@ class SecurityMiddleware:
                             {'error': 'Invalid request - email header injection detected'},
                             status=400
                         )
+            elif 'multipart/form-data' in content_type:
+                # Skip security checks for multipart data
+                pass
         
         # Check URL for path traversal
         path = request.path.lower()

@@ -1,16 +1,18 @@
 import 'package:flutter/material.dart';
-import '../services/otp_service.dart';
+import 'package:provider/provider.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import '../providers/auth_provider.dart';
+import '../config/api_config.dart';
 
-class OTPVerificationScreen extends StatefulWidget {
-  final String email;
-
-  const OTPVerificationScreen({super.key, required this.email});
+class OtpVerificationScreen extends StatefulWidget {
+  const OtpVerificationScreen({super.key});
 
   @override
-  State<OTPVerificationScreen> createState() => _OTPVerificationScreenState();
+  State<OtpVerificationScreen> createState() => _OtpVerificationScreenState();
 }
 
-class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
+class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
   final _otpController = TextEditingController();
   bool _loading = false;
   String? _errorMessage;
@@ -26,31 +28,69 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
       _errorMessage = null;
     });
 
-    final result = await OTPService().verifyOTP(widget.email, _otpController.text);
-    
-    if (!mounted) return;
-    setState(() => _loading = false);
-
-    if (result['success']) {
-      Navigator.pop(context, true);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Email verified successfully!'), backgroundColor: Colors.green),
+    try {
+      final auth = Provider.of<AuthProvider>(context, listen: false);
+      final response = await http.post(
+        Uri.parse('${ApiConfig.authBaseUrl}/verify-otp/'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ${auth.token}',
+          'ngrok-skip-browser-warning': 'true',
+        },
+        body: json.encode({'otp': _otpController.text}),
       );
-    } else {
-      setState(() => _errorMessage = result['message']);
+      
+      if (!mounted) return;
+      setState(() => _loading = false);
+      
+      if (response.statusCode == 200) {
+        await auth.checkAuthStatus();
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Email verified successfully!'), backgroundColor: Colors.green),
+        );
+      } else {
+        final data = json.decode(response.body);
+        setState(() => _errorMessage = data['error'] ?? 'Verification failed');
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _errorMessage = 'Network error. Please try again.';
+      });
     }
   }
 
   Future<void> _resendOTP() async {
-    final result = await OTPService().resendOTP(widget.email);
-    if (!mounted) return;
-    
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(result['message']),
-        backgroundColor: result['success'] ? Colors.green : Colors.red,
-      ),
-    );
+    try {
+      final auth = Provider.of<AuthProvider>(context, listen: false);
+      final response = await http.post(
+        Uri.parse('${ApiConfig.authBaseUrl}/send-otp/'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ${auth.token}',
+          'ngrok-skip-browser-warning': 'true',
+        },
+      );
+      
+      if (!mounted) return;
+      
+      if (response.statusCode == 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('OTP sent successfully!'), backgroundColor: Colors.green),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to send OTP'), backgroundColor: Colors.red),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Network error'), backgroundColor: Colors.red),
+      );
+    }
   }
 
   @override
@@ -69,10 +109,12 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
               style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
-            Text(
-              'We sent a code to ${widget.email}',
-              style: const TextStyle(color: Colors.grey),
-              textAlign: TextAlign.center,
+            Consumer<AuthProvider>(
+              builder: (context, auth, _) => Text(
+                'We sent a code to ${auth.email ?? 'your email'}',
+                style: const TextStyle(color: Colors.grey),
+                textAlign: TextAlign.center,
+              ),
             ),
             const SizedBox(height: 32),
             if (_errorMessage != null)

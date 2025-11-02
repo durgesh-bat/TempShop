@@ -1,5 +1,5 @@
-name: tempshop
-description: "TempShop - E-Commerce Platform"
+name: dealsbasket
+description: "DealsBasket - E-Commerce Platform"
 publish_to: 'none'
 version: 1.0.0+1
 
@@ -16,14 +16,15 @@ dependencies:
   cached_network_image: ^3.3.1
   flutter_rating_bar: ^4.0.1
   badges: ^3.1.2
-  carousel_slider: ^4.2.1
+  carousel_slider: ^5.1.1
   shimmer: ^3.0.0
   image_picker: ^1.0.7
+  connectivity_plus: ^6.0.5
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^5.0.0
+  flutter_lints: ^6.0.0
   flutter_launcher_icons: ^0.14.4
 
 flutter:

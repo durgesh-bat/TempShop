@@ -89,14 +89,35 @@ class ShopkeeperProfileView(APIView):
 
     def put(self, request):
         try:
+            print(f"Profile update data: {request.data}")
+            print(f"Profile update files: {request.FILES}")
+            
             shopkeeper = Shopkeeper.objects.get(id=request.user.id)
-            serializer = ShopkeeperSerializer(shopkeeper, data=request.data, partial=True)
-            if serializer.is_valid():
-                serializer.save()
-                return Response(serializer.data, status=status.HTTP_200_OK)
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Update fields manually to handle multipart data
+            if 'business_name' in request.data:
+                shopkeeper.business_name = request.data['business_name']
+            if 'business_type' in request.data:
+                shopkeeper.business_type = request.data['business_type']
+            if 'phone_number' in request.data:
+                shopkeeper.phone_number = request.data['phone_number']
+            if 'alternate_phone_number' in request.data:
+                shopkeeper.alternate_phone_number = request.data['alternate_phone_number']
+            if 'address' in request.data:
+                shopkeeper.address = request.data['address']
+            if 'profile_picture' in request.FILES:
+                shopkeeper.profile_picture = request.FILES['profile_picture']
+            
+            shopkeeper.save()
+            
+            serializer = ShopkeeperSerializer(shopkeeper)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+            
         except Shopkeeper.DoesNotExist:
             return Response({"error": "Shopkeeper profile not found"}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            print(f"Profile update error: {str(e)}")
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 # Product Management
 class ShopkeeperProductView(APIView):
@@ -183,16 +204,66 @@ class ShopkeeperProductDetailView(APIView):
             return Response({"error": "Unauthorized"}, status=status.HTTP_401_UNAUTHORIZED)
 
     def put(self, request, product_id):
+        from product.models import Category, ProductImage
+        from django.utils.text import slugify
+        
         try:
+            print(f"Update request data: {request.data}")
+            print(f"Update request files: {request.FILES}")
+            
             shopkeeper = Shopkeeper.objects.get(id=request.user.id)
-            product = get_object_or_404(ShopkeeperProduct, id=product_id, shopkeeper=shopkeeper)
-            serializer = ShopkeeperProductSerializer(product, data=request.data, partial=True)
-            if serializer.is_valid():
-                serializer.save()
-                return Response(serializer.data, status=status.HTTP_200_OK)
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            shopkeeper_product = get_object_or_404(ShopkeeperProduct, id=product_id, shopkeeper=shopkeeper)
+            
+            # Update product details
+            name = request.data.get('name')
+            price = request.data.get('price')
+            description = request.data.get('description')
+            category_name = request.data.get('category')
+            image = request.FILES.get('image')
+            
+            print(f"Parsed data - name: {name}, price: {price}, description: {description}, category: {category_name}")
+            
+            if name:
+                shopkeeper_product.product.name = name
+            if price:
+                try:
+                    shopkeeper_product.product.price = float(price)
+                except (ValueError, TypeError) as e:
+                    return Response({"error": f"Invalid price format: {price}"}, status=status.HTTP_400_BAD_REQUEST)
+            if description is not None:
+                shopkeeper_product.product.description = description
+                
+            # Update category if provided
+            if category_name:
+                category, _ = Category.objects.get_or_create(
+                    name=category_name.capitalize(),
+                    defaults={'slug': slugify(category_name)}
+                )
+                shopkeeper_product.product.category = category
+            
+            # Update image if provided
+            if image:
+                # Remove old primary image
+                ProductImage.objects.filter(product=shopkeeper_product.product, is_primary=True).delete()
+                # Add new image
+                ProductImage.objects.create(
+                    product=shopkeeper_product.product,
+                    image=image,
+                    is_primary=True,
+                    order=0
+                )
+            
+            shopkeeper_product.product.save()
+            print(f"Product updated successfully: {shopkeeper_product.product.name}")
+            
+            serializer = ShopkeeperProductSerializer(shopkeeper_product)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+            
         except Shopkeeper.DoesNotExist:
             return Response({"error": "Unauthorized"}, status=status.HTTP_401_UNAUTHORIZED)
+        except Exception as e:
+            print(f"Error updating product: {str(e)}")
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def delete(self, request, product_id):
         try:
@@ -535,3 +606,34 @@ def download_selling_receipt(request, order_item_id):
     response = HttpResponse(pdf_buffer, content_type='application/pdf')
     response['Content-Disposition'] = f'attachment; filename="selling_receipt_{order_item.order.id}_{order_item.id}.pdf"'
     return response
+
+@api_view(['PATCH'])
+@permission_classes([IsAuthenticated])
+def cancel_order_item(request, order_item_id):
+    from account.models import OrderItem
+    
+    try:
+        shopkeeper = get_object_or_404(Shopkeeper, id=request.user.id)
+        order_item = get_object_or_404(OrderItem, id=order_item_id, shopkeeper=shopkeeper)
+        
+        # Check if order can be cancelled
+        if order_item.order.status in ['shipped', 'delivered', 'cancelled']:
+            return Response(
+                {'error': f'Cannot cancel order with status: {order_item.order.status}'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Update order status to cancelled
+        order_item.order.status = 'cancelled'
+        order_item.order.save()
+        
+        return Response(
+            {'message': 'Order cancelled successfully', 'status': 'cancelled'},
+            status=status.HTTP_200_OK
+        )
+        
+    except Exception as e:
+        return Response(
+            {'error': str(e)},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )

@@ -1,10 +1,21 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:flutter/material.dart';
 import '../models/order.dart';
 import '../config/api_config.dart';
+import 'http_interceptor.dart';
 
 class OrderService {
   static String get baseUrl => ApiConfig.authBaseUrl;
+  final BuildContext? context;
+  
+  OrderService({this.context});
+  
+  Future<void> _checkResponse(http.Response response) async {
+    if (context != null) {
+      await HttpInterceptor.checkResponse(response, context!);
+    }
+  }
 
   Future<List<Order>> getOrders(String token) async {
     try {
@@ -12,6 +23,7 @@ class OrderService {
         Uri.parse('$baseUrl/orders/'),
         headers: {'Authorization': 'Bearer $token'},
       );
+      await _checkResponse(response);
 
       if (response.statusCode == 200) {
         List data = json.decode(response.body);

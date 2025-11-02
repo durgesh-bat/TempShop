@@ -1,11 +1,11 @@
 {
-    "name": "tempshop",
-    "short_name": "tempshop",
+    "name": "DealsBasket",
+    "short_name": "DealsBasket",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "description": "DealsBasket - E-Commerce Platform",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

@@ -34,6 +34,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
   Future<void> _loadData() async {
     final auth = Provider.of<AuthProvider>(context, listen: false);
+    
+    // Add to recently viewed
+    await ApiService().addToRecentlyViewed(widget.product.id, auth.token);
+    
     final similar = await ApiService().getSimilarProducts(widget.product.id);
     final reviews = await AuthService().getReviews(auth.token ?? '');
     
@@ -183,26 +187,62 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(widget.product.title, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 12),
+                    Text(
+                      widget.product.title,
+                      style: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                        height: 1.3,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
                     Row(
                       children: [
                         RatingBarIndicator(
                           rating: widget.product.rating,
                           itemBuilder: (_, __) => const Icon(Icons.star, color: Colors.amber),
                           itemCount: 5,
-                          itemSize: 22,
+                          itemSize: 20,
                         ),
                         const SizedBox(width: 8),
-                        Text('${widget.product.rating}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                        Text(
+                          '${widget.product.rating}',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black87,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.blue[50],
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            widget.product.category,
+                            style: const TextStyle(
+                              color: Color(0xFF2563EB),
+                              fontWeight: FontWeight.w600,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
                       ],
                     ),
                     const SizedBox(height: 20),
                     Container(
-                      padding: const EdgeInsets.all(16),
+                      padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF2563EB).withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(12),
+                        gradient: LinearGradient(
+                          colors: [Colors.blue[50]!, Colors.blue[100]!],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: Colors.blue[200]!),
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -210,45 +250,122 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text('Price', style: TextStyle(color: Colors.grey, fontSize: 14)),
+                              Text(
+                                'Price',
+                                style: TextStyle(
+                                  color: Colors.grey[700],
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
                               const SizedBox(height: 4),
-                              Text('₹${widget.product.price.toStringAsFixed(2)}', style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Color(0xFF2563EB))),
+                              Text(
+                                '₹${widget.product.price.toStringAsFixed(0)}',
+                                style: const TextStyle(
+                                  fontSize: 32,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF2563EB),
+                                ),
+                              ),
                             ],
                           ),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                             decoration: BoxDecoration(
                               color: widget.product.stock > 0 ? Colors.green : Colors.red,
-                              borderRadius: BorderRadius.circular(20),
+                              borderRadius: BorderRadius.circular(25),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: (widget.product.stock > 0 ? Colors.green : Colors.red).withOpacity(0.3),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
                             ),
-                            child: Text(widget.product.stock > 0 ? 'In Stock (${widget.product.stock})' : 'Out of Stock', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                            child: Text(
+                              widget.product.stock > 0 ? 'In Stock (${widget.product.stock})' : 'Out of Stock',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
+                            ),
                           ),
                         ],
                       ),
                     ),
-                    const SizedBox(height: 20),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(color: Colors.blue[50], borderRadius: BorderRadius.circular(8)),
-                      child: Text(widget.product.category, style: const TextStyle(color: Color(0xFF2563EB), fontWeight: FontWeight.w600)),
-                    ),
                     const SizedBox(height: 24),
-                    const Text('Description', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                    const Text(
+                      'Description',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
+                    ),
                     const SizedBox(height: 12),
-                    Text(widget.product.description, style: TextStyle(fontSize: 15, height: 1.6, color: Colors.grey[700])),
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[50],
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.grey[200]!),
+                      ),
+                      child: Text(
+                        widget.product.description,
+                        style: TextStyle(
+                          fontSize: 16,
+                          height: 1.6,
+                          color: Colors.grey[800],
+                          fontWeight: FontWeight.w400,
+                        ),
+                      ),
+                    ),
                     const SizedBox(height: 24),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text('Reviews', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                        TextButton.icon(onPressed: _showReviewDialog, icon: const Icon(Icons.rate_review), label: const Text('Write Review')),
+                        const Text(
+                          'Reviews',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                          ),
+                        ),
+                        ElevatedButton.icon(
+                          onPressed: _showReviewDialog,
+                          icon: const Icon(Icons.rate_review, size: 18),
+                          label: const Text('Write Review'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF2563EB),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                        ),
                       ],
                     ),
                     const SizedBox(height: 12),
                     _loadingReviews
                         ? const Center(child: CircularProgressIndicator())
                         : productReviews.isEmpty
-                            ? const Text('No reviews yet', style: TextStyle(color: Colors.grey))
+                            ? Container(
+                                padding: const EdgeInsets.all(20),
+                                decoration: BoxDecoration(
+                                  color: Colors.grey[100],
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: const Center(
+                                  child: Text(
+                                    'No reviews yet. Be the first to review!',
+                                    style: TextStyle(
+                                      color: Colors.grey,
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                ),
+                              )
                             : Column(
                                 children: productReviews.map((review) => Card(
                                   margin: const EdgeInsets.only(bottom: 8),
@@ -278,7 +395,14 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                               ),
                     const SizedBox(height: 24),
                     if (_similarProducts.isNotEmpty) ...[
-                      const Text('Similar Products', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                      const Text(
+                        'Similar Products',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
+                        ),
+                      ),
                       const SizedBox(height: 12),
                       SizedBox(
                         height: 280,

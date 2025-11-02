@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../services/notification_service.dart';
 import '../providers/auth_provider.dart';
 import '../providers/notification_provider.dart';
+import '../theme/app_theme.dart';
 
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
@@ -54,19 +55,44 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     _loadNotifications();
   }
 
+  void _showNotificationDialog(Map<String, dynamic> notification) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(notification['title'] ?? 'Notification'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(notification['message'] ?? ''),
+            const SizedBox(height: 16),
+            Text(
+              'Received: ${notification['created_at'] ?? ''}',
+              style: const TextStyle(fontSize: 12, color: Colors.grey),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Notifications'),
-        actions: [
-          if (_notifications.any((n) => !n['is_read']))
-            TextButton(
-              onPressed: _markAllAsRead,
-              child: const Text('Mark all read'),
-            ),
-        ],
-      ),
+      backgroundColor: AppTheme.backgroundColor,
+      appBar: AppTheme.buildAppBar('Notifications', actions: [
+        if (_notifications.any((n) => !n['is_read']))
+          TextButton(
+            onPressed: _markAllAsRead,
+            child: const Text('Mark all read', style: TextStyle(color: Colors.white)),
+          ),
+      ]),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _notifications.isEmpty
@@ -74,9 +100,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.notifications_off, size: 80, color: Colors.grey),
-                      SizedBox(height: 16),
-                      Text('No notifications', style: TextStyle(fontSize: 18, color: Colors.grey)),
+                      Icon(Icons.notifications_off, size: 80, color: AppTheme.textSecondary),
+                      const SizedBox(height: 16),
+                      Text('No notifications', style: TextStyle(fontSize: 18, color: AppTheme.textSecondary)),
                     ],
                   ),
                 )
@@ -112,7 +138,12 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                             ),
                           ],
                         ),
-                        onTap: isRead ? null : () => _markAsRead(notif['id']),
+                        onTap: () {
+                          if (!isRead) {
+                            _markAsRead(notif['id']);
+                          }
+                          _showNotificationDialog(notif);
+                        },
                       ),
                     );
                   },

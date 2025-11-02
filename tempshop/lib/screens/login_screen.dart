@@ -16,6 +16,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isLoading = false;
+  bool _obscurePassword = true;
   String? _errorMessage;
 
   Future<void> _login() async {
@@ -36,10 +37,12 @@ class _LoginScreenState extends State<LoginScreen> {
     if (result['success']) {
       if (mounted) {
         final user = result['user'] ?? {};
-        Provider.of<AuthProvider>(context, listen: false).login(
+        await Provider.of<AuthProvider>(context, listen: false).login(
           result['token'],
           username: user['username'] ?? _usernameController.text.trim(),
           email: user['email'],
+          profilePicture: user['profile_picture'],
+          emailVerified: result['email_verified'],
         );
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
@@ -244,7 +247,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         const SizedBox(height: 8),
                         TextFormField(
                           controller: _passwordController,
-                          obscureText: true,
+                          obscureText: _obscurePassword,
                           style: const TextStyle(color: Colors.black),
                           decoration: InputDecoration(
                             filled: true,
@@ -262,6 +265,13 @@ class _LoginScreenState extends State<LoginScreen> {
                               borderSide: const BorderSide(color: Color(0xFF3B82F6), width: 2),
                             ),
                             contentPadding: const EdgeInsets.all(16),
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                _obscurePassword ? Icons.visibility : Icons.visibility_off,
+                                color: const Color(0xFF6B7280),
+                              ),
+                              onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                            ),
                           ),
                           validator: (value) => value?.isEmpty == true ? 'Password is required' : null,
                         ),

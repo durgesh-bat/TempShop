@@ -6,15 +6,15 @@ import '../services/api_service.dart';
 import '../providers/cart_provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/notification_provider.dart';
+import '../providers/wishlist_provider.dart';
 import '../widgets/product_card.dart';
 import 'cart_screen.dart';
 import 'wishlist_screen.dart';
 import 'search_screen.dart';
 import 'login_screen.dart';
-import 'profile_screen.dart';
-import 'orders_screen.dart';
 import 'notifications_screen.dart';
 import 'category_products_screen.dart';
+import '../widgets/email_verification_banner.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -46,26 +46,39 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _loadData() async {
     if (!mounted) return;
     setState(() => _loading = true);
-    final auth = Provider.of<AuthProvider>(context, listen: false);
-    final products = await _api.getProducts();
-    final categories = await _api.getCategoriesWithImages();
-    final recentlyViewed = await _api.getRecentlyViewed(auth.token);
-    
-    final Map<String, List<Product>> grouped = {};
-    if (recentlyViewed.isNotEmpty) {
-      grouped['Recently Viewed'] = recentlyViewed;
+    try {
+      final auth = Provider.of<AuthProvider>(context, listen: false);
+      final products = await _api.getProducts();
+      final categories = await _api.getCategoriesWithImages();
+      final recentlyViewed = await _api.getRecentlyViewed(auth.token);
+      
+      final Map<String, List<Product>> grouped = {};
+      if (recentlyViewed.isNotEmpty) {
+        grouped['Recently Viewed'] = recentlyViewed;
+      }
+      for (var cat in categories) {
+        grouped[cat['name']] = products.where((p) => p.category == cat['name']).toList();
+      }
+      
+      if (!mounted) return;
+      setState(() {
+        _products = products;
+        _categories = categories;
+        _productsByCategory = grouped;
+        _loading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _loading = false);
+      if (e.toString().contains('No internet connection')) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('No internet connection. Please check your network.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
-    for (var cat in categories) {
-      grouped[cat['name']] = products.where((p) => p.category == cat['name']).toList();
-    }
-    
-    if (!mounted) return;
-    setState(() {
-      _products = products;
-      _categories = categories;
-      _productsByCategory = grouped;
-      _loading = false;
-    });
   }
 
   @override
@@ -73,6 +86,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final cart = Provider.of<CartProvider>(context);
     final auth = Provider.of<AuthProvider>(context);
     final notifications = Provider.of<NotificationProvider>(context);
+    final wishlist = Provider.of<WishlistProvider>(context);
 
     return Scaffold(
       backgroundColor: Colors.grey[50],
@@ -109,14 +123,18 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
           if (auth.isAuthenticated)
-            Padding(
-              padding: const EdgeInsets.only(right: 4),
-              child: badges.Badge(
+            Consumer<NotificationProvider>(
+              builder: (context, notifications, _) => badges.Badge(
                 badgeContent: Text(
                   '${notifications.unreadCount}',
                   style: const TextStyle(color: Colors.white, fontSize: 10),
                 ),
                 showBadge: notifications.unreadCount > 0,
+                badgeStyle: const badges.BadgeStyle(
+                  badgeColor: Colors.red,
+                  padding: EdgeInsets.all(4),
+                ),
+                position: badges.BadgePosition.topEnd(top: 8, end: 8),
                 child: IconButton(
                   icon: const Icon(Icons.notifications_outlined),
                   onPressed: () => Navigator.push(
@@ -126,33 +144,54 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
             ),
-          IconButton(
-            icon: const Icon(Icons.favorite_border),
-            onPressed: () {
-              if (auth.isAuthenticated) {
-                Navigator.push(context, MaterialPageRoute(builder: (_) => const WishlistScreen()));
-              } else {
-                Navigator.push(context, MaterialPageRoute(builder: (_) => const LoginScreen()));
-              }
-            },
+          Consumer<WishlistProvider>(
+            builder: (context, wishlist, _) => badges.Badge(
+              badgeContent: Text(
+                '${wishlist.count}',
+                style: const TextStyle(color: Colors.white, fontSize: 10),
+              ),
+              showBadge: wishlist.count > 0,
+              badgeStyle: const badges.BadgeStyle(
+                badgeColor: Colors.red,
+                padding: EdgeInsets.all(4),
+              ),
+              position: badges.BadgePosition.topEnd(top: 8, end: 8),
+              child: IconButton(
+                icon: const Icon(Icons.favorite_border),
+                onPressed: () {
+                  if (auth.isAuthenticated) {
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => const WishlistScreen()));
+                  } else {
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => const LoginScreen()));
+                  }
+                },
+              ),
+            ),
           ),
-          Padding(
-            padding: const EdgeInsets.only(right: 8),
-            child: badges.Badge(
+          Consumer<CartProvider>(
+            builder: (context, cart, _) => badges.Badge(
               badgeContent: Text(
                 '${cart.itemCount}',
                 style: const TextStyle(color: Colors.white, fontSize: 10),
               ),
               showBadge: cart.itemCount > 0,
-              child: IconButton(
-                icon: const Icon(Icons.shopping_cart),
-                onPressed: () {
-                  if (auth.isAuthenticated) {
-                    Navigator.push(context, MaterialPageRoute(builder: (_) => const CartScreen()));
-                  } else {
-                    Navigator.push(context, MaterialPageRoute(builder: (_) => const LoginScreen()));
-                  }
-                },
+              badgeStyle: const badges.BadgeStyle(
+                badgeColor: Colors.red,
+                padding: EdgeInsets.all(4),
+              ),
+              position: badges.BadgePosition.topEnd(top: 8, end: 8),
+              child: Container(
+                margin: const EdgeInsets.only(right: 8),
+                child: IconButton(
+                  icon: const Icon(Icons.shopping_cart),
+                  onPressed: () {
+                    if (auth.isAuthenticated) {
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => const CartScreen()));
+                    } else {
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => const LoginScreen()));
+                    }
+                  },
+                ),
               ),
             ),
           ),
@@ -165,6 +204,7 @@ class _HomeScreenState extends State<HomeScreen> {
               onRefresh: _loadData,
               child: ListView(
                 children: [
+                  const EmailVerificationBanner(),
                   Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
@@ -245,13 +285,36 @@ class _HomeScreenState extends State<HomeScreen> {
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Text(
-                                category['name'],
-                                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                              Row(
+                                children: [
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: Image.network(
+                                      category['image'] ?? '',
+                                      width: 32,
+                                      height: 32,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (_, __, ___) => Container(
+                                        width: 32,
+                                        height: 32,
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFF2563EB).withOpacity(0.1),
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                        child: const Icon(Icons.category, size: 20, color: Color(0xFF2563EB)),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Text(
+                                    category['name'],
+                                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black87),
+                                  ),
+                                ],
                               ),
                               Text(
                                 '${products.length} items',
-                                style: TextStyle(color: Colors.grey[600]),
+                                style: TextStyle(color: Colors.grey[600], fontSize: 14),
                               ),
                             ],
                           ),
@@ -303,31 +366,44 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ],
         ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: Image.network(
-                category['image'] ?? '',
-                width: 60,
-                height: 60,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => const Icon(Icons.category, size: 32, color: Color(0xFF2563EB)),
+        child: Padding(
+          padding: const EdgeInsets.all(8),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Image.network(
+                  category['image'] ?? '',
+                  width: 50,
+                  height: 50,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => Container(
+                    width: 50,
+                    height: 50,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF2563EB).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(Icons.category, size: 28, color: Color(0xFF2563EB)),
+                  ),
+                ),
               ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              category['name'] ?? '',
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
+              const SizedBox(height: 8),
+              Text(
+                category['name'] ?? '',
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black87,
+                  height: 1.2,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

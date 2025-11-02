@@ -4,15 +4,32 @@ import 'dart:convert';
 import '../models/cart_item.dart';
 import '../models/product.dart';
 import '../config/api_config.dart';
+import '../services/http_interceptor.dart';
 
 class CartProvider with ChangeNotifier {
   final List<CartItem> _items = [];
   String? _token;
+  BuildContext? _context;
   static String get baseUrl => ApiConfig.cartBaseUrl;
+  
+  void setContext(BuildContext context) {
+    _context = context;
+  }
+  
+  Future<void> _checkResponse(http.Response response) async {
+    if (_context != null) {
+      await HttpInterceptor.checkResponse(response, _context!);
+    }
+  }
 
   void setToken(String? token) {
     _token = token;
-    if (token != null) syncWithBackend();
+    if (token != null) {
+      syncWithBackend();
+    } else {
+      _items.clear();
+      notifyListeners();
+    }
   }
 
   Future<void> syncWithBackend() async {
@@ -22,6 +39,7 @@ class CartProvider with ChangeNotifier {
         Uri.parse('$baseUrl/cart/'),
         headers: {'Authorization': 'Bearer $_token'},
       );
+      await _checkResponse(response);
       if (response.statusCode == 200) {
         final decoded = json.decode(response.body);
         _items.clear();
@@ -56,6 +74,7 @@ class CartProvider with ChangeNotifier {
         },
         body: json.encode({'quantity': 1}),
       );
+      await _checkResponse(response);
       if (response.statusCode == 200) {
         await syncWithBackend();
         return true;
@@ -73,6 +92,7 @@ class CartProvider with ChangeNotifier {
         Uri.parse('$baseUrl/cart/$productId/'),
         headers: {'Authorization': 'Bearer $_token'},
       );
+      await _checkResponse(response);
       if (response.statusCode == 200) {
         await syncWithBackend();
       }
@@ -92,6 +112,7 @@ class CartProvider with ChangeNotifier {
         },
         body: json.encode({'quantity': quantity}),
       );
+      await _checkResponse(response);
       if (response.statusCode == 200) {
         await syncWithBackend();
       }

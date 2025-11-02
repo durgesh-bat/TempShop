@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../providers/cart_provider.dart';
 import '../providers/auth_provider.dart';
+import '../theme/app_theme.dart';
 import 'checkout_screen.dart';
 import 'login_screen.dart';
 
@@ -14,8 +15,8 @@ class CartScreen extends StatelessWidget {
     final cart = Provider.of<CartProvider>(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Shopping Cart'),
+      backgroundColor: AppTheme.backgroundColor,
+      appBar: AppTheme.buildAppBar('Shopping Cart',
         actions: [
           if (cart.items.isNotEmpty)
             TextButton(
@@ -41,18 +42,18 @@ class CartScreen extends StatelessWidget {
                   ),
                 );
               },
-              child: const Text('Clear'),
+              child: const Text('Clear', style: TextStyle(color: Colors.white)),
             ),
         ],
       ),
       body: cart.items.isEmpty
-          ? const Center(
+          ? Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.shopping_cart_outlined, size: 100, color: Colors.grey),
-                  SizedBox(height: 16),
-                  Text('Your cart is empty', style: TextStyle(fontSize: 18)),
+                  Icon(Icons.shopping_cart_outlined, size: 100, color: AppTheme.textSecondary),
+                  const SizedBox(height: 16),
+                  Text('Your cart is empty', style: TextStyle(fontSize: 18, color: AppTheme.textSecondary)),
                 ],
               ),
             )
@@ -63,11 +64,12 @@ class CartScreen extends StatelessWidget {
                     itemCount: cart.items.length,
                     itemBuilder: (_, i) {
                       final item = cart.items[i];
-                      return Card(
+                      return Container(
                         margin: const EdgeInsets.symmetric(
                           horizontal: 16,
                           vertical: 8,
                         ),
+                        decoration: AppTheme.cardDecoration,
                         child: Padding(
                           padding: const EdgeInsets.all(8),
                           child: Row(
@@ -177,7 +179,7 @@ class CartScreen extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Theme.of(context).cardColor,
+                    color: AppTheme.cardColor,
                     boxShadow: [
                       BoxShadow(
                         color: Colors.black.withOpacity(0.1),
@@ -227,7 +229,7 @@ class CartScreen extends StatelessWidget {
                           },
                           style: ElevatedButton.styleFrom(
                             padding: const EdgeInsets.symmetric(vertical: 16),
-                            backgroundColor: Colors.black,
+                            backgroundColor: AppTheme.primaryColor,
                           ),
                           child: const Text(
                             'Checkout',

@@ -103,14 +103,15 @@ def login_user(request):
         user = authenticate(username=username, password=password)
         if user and isinstance(user, Client):
             tokens = get_tokens_for_user(user)
+            user_data = ClientSerializer(user).data
             response_data = {
-                "user": ClientSerializer(user).data,
+                "user": user_data,
                 "message": "Login successful",
-                "access_token": tokens['access']
+                "access_token": tokens['access'],
+                "email_verified": user_data['is_email_verified']
             }
             if not user.is_email_verified:
                 response_data["message"] = "Email not verified. Please verify your email."
-                response_data["email_verified"] = False
             
             response = Response(response_data)
             response.set_cookie(
@@ -139,7 +140,7 @@ def login_user(request):
 
 class ProfileView(APIView):
     permission_classes = [IsAuthenticated]
-
+    parser_classes = [MultiPartParser, FormParser]
     def get(self, request):
         serializer = ClientSerializer(request.user)
         return Response(serializer.data, status=status.HTTP_200_OK)
@@ -148,6 +149,7 @@ class ProfileView(APIView):
         from .validators import validate_username, validate_email, validate_phone, validate_text_input
         
         user = request.user
+        print("Patch Profile run")
         try:
             if 'username' in request.data and request.data['username']:
                 user.username = validate_username(request.data['username'])
@@ -160,6 +162,7 @@ class ProfileView(APIView):
             if 'phone_number' in request.data and request.data['phone_number']:
                 user.phone_number = validate_phone(request.data['phone_number'])
             if 'profile_picture' in request.FILES:
+                
                 file = request.FILES['profile_picture']
                 if file.size > 5 * 1024 * 1024:
                     return Response({"error": "File size exceeds 5MB"}, status=status.HTTP_400_BAD_REQUEST)
@@ -169,6 +172,7 @@ class ProfileView(APIView):
                 user.profile_picture = file
             user.save()
         except Exception as e:
+            print(f"Exception in Update Profile: {str(e)}")
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         
         serializer = ClientSerializer(user)
@@ -482,11 +486,19 @@ def verify_email(request, token):
 def send_otp(request):
     try:
         user = request.user
+        print(f"Send OTP request from user: {user.username}")
+        
+        # Check if OTP fields exist
+        if not hasattr(user, 'email_otp') or not hasattr(user, 'otp_created_at'):
+            print("OTP fields missing in user model")
+            return Response({"error": "Database migration required"}, status=status.HTTP_400_BAD_REQUEST)
         
         if user.is_email_verified:
+            print(f"User {user.username} already verified")
             return Response({"error": "Email already verified"}, status=status.HTTP_400_BAD_REQUEST)
         
         otp = str(random.randint(100000, 999999))
+        print(f"Generated OTP: {otp} for user: {user.username}")
         
         user.email_otp = otp
         user.otp_created_at = timezone.now()
@@ -504,10 +516,13 @@ def send_otp(request):
         )
         email.attach_alternative(html_content, "text/html")
         email.send()
+        print(f"OTP email sent to: {user.email}")
         return Response({"message": "OTP sent to your email"}, status=status.HTTP_200_OK)
     except Exception as e:
         import traceback
         error_trace = traceback.format_exc()
+        print(f"Send OTP error: {str(e)}")
+        print(f"Traceback: {error_trace}")
         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 

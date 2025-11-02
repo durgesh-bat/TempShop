@@ -11,7 +11,7 @@ urlpatterns = [
     
     # Product Management
     path('products/', views.ShopkeeperProductView.as_view(), name='shopkeeper-products'),
-    path('products/<uuid:product_id>/', views.ShopkeeperProductDetailView.as_view(), name='shopkeeper-product-detail'),
+    path('products/<int:product_id>/', views.ShopkeeperProductDetailView.as_view(), name='shopkeeper-product-detail'),
     
     # Order Management
     path('orders/', views.ShopkeeperOrderView.as_view(), name='shopkeeper-orders'),
@@ -29,8 +29,8 @@ urlpatterns = [
     
     # Inventory Management
     path('inventory/', views.inventory_overview, name='inventory-overview'),
-    path('inventory/<uuid:product_id>/stock/', views.update_stock, name='update-stock'),
-    path('inventory/<uuid:product_id>/toggle/', views.toggle_availability, name='toggle-availability'),
+    path('inventory/<int:product_id>/stock/', views.update_stock, name='update-stock'),
+    path('inventory/<int:product_id>/toggle/', views.toggle_availability, name='toggle-availability'),
     
     # Payment & Analytics
     path('payments/', views.payment_history, name='payment-history'),
@@ -38,4 +38,7 @@ urlpatterns = [
     
     # Receipts
     path('order-items/<int:order_item_id>/receipt/', views.download_selling_receipt, name='download-selling-receipt'),
+    
+    # Order Management
+    path('order-items/<int:order_item_id>/cancel/', views.cancel_order_item, name='cancel-order-item'),
 ]

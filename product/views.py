@@ -74,11 +74,25 @@ def get_products_by_category(request):
             })
     return Response(result)
 
-@api_view(['GET'])
+@api_view(['GET', 'POST'])
 def get_recently_viewed(request):
-    """Get user's recently viewed products"""
+    """Get user's recently viewed products or add a product to recently viewed"""
     if not request.user.is_authenticated:
         return Response([])
+    
+    if request.method == 'POST':
+        product_id = request.data.get('product_id')
+        if product_id:
+            try:
+                product = Product.objects.get(id=product_id)
+                RecentlyViewed.objects.update_or_create(
+                    user=request.user,
+                    product=product
+                )
+                return Response({'success': True})
+            except Product.DoesNotExist:
+                return Response({'error': 'Product not found'}, status=404)
+        return Response({'error': 'Product ID required'}, status=400)
     
     recent = RecentlyViewed.objects.filter(user=request.user).select_related('product')[:8]
     products = [rv.product for rv in recent if rv.product.is_available]

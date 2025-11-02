@@ -1,11 +1,13 @@
 import axios from 'axios';
+import { Base_URL } from '../utils/baseURL';
 
-const BASE_URL = "http://localhost:8000/api";
+const BASE_URL = Base_URL || "https://7e6498602a71.ngrok-free.app/api";
 
 const shopkeeperAxiosInstance = axios.create({
   baseURL: BASE_URL,
   headers: {
     "Content-Type": "application/json",
+    "ngrok-skip-browser-warning": "true",
   },
 });
 

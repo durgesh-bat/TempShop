@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../models/order.dart';
 import '../services/order_service.dart';
 import '../providers/auth_provider.dart';
+import '../theme/app_theme.dart';
 
 class OrdersScreen extends StatefulWidget {
   const OrdersScreen({super.key});
@@ -17,7 +18,7 @@ class _OrdersScreenState extends State<OrdersScreen> with AutomaticKeepAliveClie
   String _filter = 'all';
 
   @override
-  bool get wantKeepAlive => false;
+  bool get wantKeepAlive => true;
 
   @override
   void initState() {
@@ -29,7 +30,7 @@ class _OrdersScreenState extends State<OrdersScreen> with AutomaticKeepAliveClie
   void didChangeDependencies() {
     super.didChangeDependencies();
     final auth = Provider.of<AuthProvider>(context, listen: false);
-    if (auth.isAuthenticated && _orders.isEmpty && !_loading) {
+    if (auth.isAuthenticated && !_loading) {
       _loadOrders();
     }
   }
@@ -48,7 +49,7 @@ class _OrdersScreenState extends State<OrdersScreen> with AutomaticKeepAliveClie
     
     try {
       print('Loading orders with token: ${auth.token!.substring(0, 20)}...');
-      final orders = await OrderService().getOrders(auth.token!);
+      final orders = await OrderService(context: context).getOrders(auth.token!);
       print('Orders loaded: ${orders.length}');
       if (!mounted) return;
       setState(() {
@@ -95,9 +96,13 @@ class _OrdersScreenState extends State<OrdersScreen> with AutomaticKeepAliveClie
     final auth = Provider.of<AuthProvider>(context);
     
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('My Orders'),
-      ),
+      backgroundColor: AppTheme.backgroundColor,
+      appBar: AppTheme.buildAppBar('My Orders', actions: [
+        IconButton(
+          icon: const Icon(Icons.refresh, color: Colors.white),
+          onPressed: _loadOrders,
+        ),
+      ]),
       body: !auth.isAuthenticated
           ? Center(
               child: Column(
@@ -114,8 +119,10 @@ class _OrdersScreenState extends State<OrdersScreen> with AutomaticKeepAliveClie
                 ],
               ),
             )
-          : _loading
-              ? const Center(child: CircularProgressIndicator())
+          : RefreshIndicator(
+              onRefresh: _loadOrders,
+              child: _loading
+                  ? const Center(child: CircularProgressIndicator())
               : Column(
               children: [
                 SizedBox(
@@ -155,8 +162,9 @@ class _OrdersScreenState extends State<OrdersScreen> with AutomaticKeepAliveClie
                           itemCount: _filteredOrders.length,
                           itemBuilder: (_, i) {
                             final order = _filteredOrders[i];
-                            return Card(
+                            return Container(
                               margin: const EdgeInsets.only(bottom: 12),
+                              decoration: AppTheme.cardDecoration,
                               child: Padding(
                                 padding: const EdgeInsets.all(16),
                                 child: Column(
@@ -237,6 +245,7 @@ class _OrdersScreenState extends State<OrdersScreen> with AutomaticKeepAliveClie
                 ),
               ],
             ),
+          ),
     );
   }
 }
