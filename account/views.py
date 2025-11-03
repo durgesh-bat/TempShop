@@ -504,20 +504,24 @@ def send_otp(request):
         user.otp_created_at = timezone.now()
         user.save(update_fields=['email_otp', 'otp_created_at'])
         
-        html_content = render_to_string('emails/otp_email.html', {
-            'username': user.username,
-            'otp': otp
-        })
-        email = EmailMultiAlternatives(
-            'Email Verification OTP - TempShop',
-            f'Your OTP for email verification is: {otp}\n\nThis OTP is valid for 10 minutes.',
-            settings.DEFAULT_FROM_EMAIL,
-            [user.email]
-        )
-        email.attach_alternative(html_content, "text/html")
-        email.send()
-        print(f"OTP email sent to: {user.email}")
-        return Response({"message": "OTP sent to your email"}, status=status.HTTP_200_OK)
+        try:
+            html_content = render_to_string('emails/otp_email.html', {
+                'username': user.username,
+                'otp': otp
+            })
+            email = EmailMultiAlternatives(
+                'Email Verification OTP - TempShop',
+                f'Your OTP for email verification is: {otp}\n\nThis OTP is valid for 10 minutes.',
+                settings.DEFAULT_FROM_EMAIL,
+                [user.email]
+            )
+            email.attach_alternative(html_content, "text/html")
+            email.send()
+            print(f"OTP email sent to: {user.email}")
+        except Exception as email_error:
+            print(f"Email sending failed: {email_error}")
+            print(f"OTP for {user.email}: {otp}")
+        return Response({"message": "OTP sent to your email", "otp": otp if settings.DEBUG else None}, status=status.HTTP_200_OK)
     except Exception as e:
         import traceback
         error_trace = traceback.format_exc()
