@@ -31,14 +31,14 @@ SECRET_KEY = os.getenv('SECRET_KEY')
 
 DEBUG = True
 
-ALLOWED_HOSTS = ['localhost','127.0.0.1','temp-shop-phi.vercel.app', 'd79946258792.ngrok-free.app']
+ALLOWED_HOSTS = ['localhost','127.0.0.1','temp-shop-phi.vercel.app', '2c579fef222d.ngrok-free.app']
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
     "http://localhost:8000",
     "http://127.0.0.1:8000",
     "http://localhost:51348",
-    "https://d79946258792.ngrok-free.app",
+    "https://2c579fef222d.ngrok-free.app",
 ]
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_ALL_ORIGINS = False
@@ -250,7 +250,7 @@ CSRF_TRUSTED_ORIGINS = [
     "http://localhost:52001",
     "http://localhost:52002",
     "http://localhost:51348",
-    "https://d79946258792.ngrok-free.app",
+    "https://2c579fef222d.ngrok-free.app",
 ]
 CSRF_COOKIE_NAME = 'csrftoken'
 SESSION_COOKIE_SAMESITE = 'Lax'

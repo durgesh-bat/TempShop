@@ -7,8 +7,9 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from django.middleware.csrf import get_token
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.http import HttpResponse
-from .models import Client, Address, Wallet, PaymentMethod, Order, Review, Wishlist, Notification
-from .serializers import RegisterSerializer, ClientSerializer, LoginSerializer, AddressSerializer, WalletSerializer, PaymentMethodSerializer, OrderSerializer, ReviewSerializer, WishlistSerializer, NotificationSerializer
+from django.shortcuts import render
+from .models import Client, Address, Wallet, PaymentMethod, Order, Review, Wishlist, Notification, ProductQuestion
+from .serializers import RegisterSerializer, ClientSerializer, LoginSerializer, AddressSerializer, WalletSerializer, PaymentMethodSerializer, OrderSerializer, ReviewSerializer, WishlistSerializer, NotificationSerializer, ProductQuestionSerializer
 from .validators import validate_otp, validate_email
 from rest_framework.views import APIView
 from rest_framework.parsers import MultiPartParser, FormParser
@@ -403,6 +404,14 @@ class ReviewView(APIView):
 
     def post(self, request):
         product = get_object_or_404(Product, pk=request.data.get('product_id'))
+        
+        # Check if user can review this product (must have received it)
+        if not request.user.can_review_product(product.id):
+            return Response(
+                {"error": "You can only review products you have received"}, 
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
         review, created = Review.objects.update_or_create(
             user=request.user,
             product=product,
@@ -468,17 +477,51 @@ def remove_from_wishlist_by_product(request, product_id):
     return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-@api_view(['GET'])
-@permission_classes([AllowAny])
 def verify_email(request, token):
     try:
         user = Client.objects.get(email_verification_token=token)
         user.is_email_verified = True
         user.email_verification_token = None
         user.save()
-        return Response({"message": "Email verified successfully!"}, status=status.HTTP_200_OK)
+        return render(request, 'email_verified.html')
     except Client.DoesNotExist:
-        return Response({"error": "Invalid verification token"}, status=status.HTTP_400_BAD_REQUEST)
+        return render(request, 'email_verified.html', {'error': True})
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def send_verification_link(request):
+    try:
+        user = request.user
+        
+        if user.is_email_verified:
+            return Response({"error": "Email already verified"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Generate new verification token
+        token = secrets.token_urlsafe(32)
+        user.email_verification_token = token
+        user.save()
+        
+        # Send verification email
+        verification_url = f"{request.scheme}://{request.get_host()}/api/auth/verify-email/{token}/"
+        try:
+            html_content = render_to_string('emails/welcome_email.html', {
+                'username': user.username,
+                'verification_url': verification_url
+            })
+            email = EmailMultiAlternatives(
+                'Verify Your Email - TempShop',
+                f'Click the link to verify your email: {verification_url}',
+                settings.DEFAULT_FROM_EMAIL,
+                [user.email]
+            )
+            email.attach_alternative(html_content, "text/html")
+            email.send()
+        except Exception as e:
+            print(f"Email sending failed: {e}")
+        
+        return Response({"message": "Verification link sent to your email"}, status=status.HTTP_200_OK)
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
@@ -538,10 +581,19 @@ def verify_otp(request):
         user = request.user
         otp = request.data.get('otp')
         
+        print(f"Verify OTP request from user: {user.username}")
+        print(f"Received OTP: {otp} (type: {type(otp)})")
+        print(f"User stored OTP: {user.email_otp}")
+        
+        # Convert OTP to string if it's not already
+        if otp is not None:
+            otp = str(otp)
+        
         # Validate OTP format
         try:
             otp = validate_otp(otp)
         except Exception as e:
+            print(f"OTP validation failed: {str(e)}")
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         
         # Check if OTP fields exist
@@ -686,3 +738,25 @@ def delete_notification(request, pk):
     notification = get_object_or_404(Notification, pk=pk, user=request.user)
     notification.delete()
     return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class ProductQuestionView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        product = get_object_or_404(Product, pk=request.data.get('product_id'))
+        question = ProductQuestion.objects.create(
+            user=request.user,
+            product=product,
+            question=request.data.get('question')
+        )
+        serializer = ProductQuestionSerializer(question)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def product_questions(request, product_id):
+    questions = ProductQuestion.objects.filter(product_id=product_id).order_by('-created_at')
+    serializer = ProductQuestionSerializer(questions, many=True)
+    return Response(serializer.data)

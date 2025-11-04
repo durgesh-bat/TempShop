@@ -43,6 +43,13 @@ class Client(AbstractUser):
 
     def __str__(self):
         return self.username
+    
+    def can_review_product(self, product_id):
+        """Check if user can review a product (must have received it)"""
+        return self.orders.filter(
+            items__product_id=product_id,
+            status='delivered'
+        ).exists()
 
 
 class Address(models.Model):
@@ -166,6 +173,19 @@ class RevokedToken(models.Model):
 
     def __str__(self):
         return f"{self.token_type} - {self.jti[:8]}..."
+
+
+class ProductQuestion(models.Model):
+    user = models.ForeignKey(Client, on_delete=models.CASCADE, related_name='questions')
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='questions')
+    question = models.TextField()
+    answer = models.TextField(blank=True, null=True)
+    answered_by = models.ForeignKey(Client, on_delete=models.SET_NULL, null=True, blank=True, related_name='answered_questions')
+    created_at = models.DateTimeField(auto_now_add=True)
+    answered_at = models.DateTimeField(null=True, blank=True)
+
+    def __str__(self):
+        return f'{self.user.username} - {self.product.name[:30]}...'
 
 
 class Notification(models.Model):

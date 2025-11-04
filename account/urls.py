@@ -38,8 +38,11 @@ urlpatterns = [
     path('wishlist/product/<int:product_id>/', views.remove_from_wishlist_by_product, name='remove-from-wishlist-by-product'),
 
     path('products/<int:product_id>/reviews/', views.product_reviews, name='product-reviews'),
+    path('products/<int:product_id>/questions/', views.product_questions, name='product-questions'),
+    path('questions/', views.ProductQuestionView.as_view(), name='questions'),
     
     path('verify-email/<str:token>/', views.verify_email, name='verify-email'),
+    path('send-verification-link/', views.send_verification_link, name='send-verification-link'),
     path('send-otp/', views.send_otp, name='send-otp'),
     path('verify-otp/', views.verify_otp, name='verify-otp'),
 
