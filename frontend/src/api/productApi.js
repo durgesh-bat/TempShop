@@ -20,11 +20,6 @@ export const getProductDetails = async (id) => {
   return res.data;
 };
 
-export const getProductsByCategory = async () => {
-  const res = await axiosInstance.get("/products-by-category/");
-  return res.data;
-};
-
 export const getRecentlyViewed = async () => {
   const res = await axiosInstance.get("/recently-viewed/");
   return res.data;
