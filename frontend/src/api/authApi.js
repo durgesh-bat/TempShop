@@ -9,9 +9,16 @@ export const getCsrfToken = async () => {
   await axios.get(`${BASE_URL}/auth/csrf/`, { withCredentials: true });
 };
 
-export const loginUser = async (credentials) => {
   await getCsrfToken();
   const res = await axiosInstance.post("/auth/login/", credentials);
+  return res.data;
+};
+// Login expects email and password
+export const loginUser = async (credentials) => {
+  await getCsrfToken();
+  // Ensure credentials use email, not username
+  const { email, password } = credentials;
+  const res = await axiosInstance.post("/auth/login/", { email, password });
   return res.data;
 };
 
@@ -35,9 +42,30 @@ export const fetchProfile = async () => {
   const res = await axiosInstance.get("/auth/profile/");
   return res.data;
 };
-export const updateProfile = async (profileData) => {
   try {
     const res = await axiosInstance.put("/auth/profile/", profileData);
+    return res.data;
+  } catch (error) {
+    console.error('Profile update error:', error);
+    const errorMessage = error.response?.data?.message || 
+                        error.response?.data?.detail || 
+                        error.message || 
+                        'Profile update failed';
+    throw new Error(errorMessage);
+  }
+};
+// Update profile using PATCH and multipart/form-data
+export const updateProfile = async (profileData) => {
+  try {
+    const formData = new FormData();
+    Object.entries(profileData).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        formData.append(key, value);
+      }
+    });
+    const res = await axiosInstance.patch("/auth/profile/", formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
     return res.data;
   } catch (error) {
     console.error('Profile update error:', error);
