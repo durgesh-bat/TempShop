@@ -9,10 +9,7 @@ export const getCsrfToken = async () => {
   await axios.get(`${BASE_URL}/auth/csrf/`, { withCredentials: true });
 };
 
-  await getCsrfToken();
-  const res = await axiosInstance.post("/auth/login/", credentials);
-  return res.data;
-};
+// ...existing code...
 // Login expects email and password
 export const loginUser = async (credentials) => {
   await getCsrfToken();
@@ -42,18 +39,7 @@ export const fetchProfile = async () => {
   const res = await axiosInstance.get("/auth/profile/");
   return res.data;
 };
-  try {
-    const res = await axiosInstance.put("/auth/profile/", profileData);
-    return res.data;
-  } catch (error) {
-    console.error('Profile update error:', error);
-    const errorMessage = error.response?.data?.message || 
-                        error.response?.data?.detail || 
-                        error.message || 
-                        'Profile update failed';
-    throw new Error(errorMessage);
-  }
-};
+// ...existing code...
 // Update profile using PATCH and multipart/form-data
 export const updateProfile = async (profileData) => {
   try {
