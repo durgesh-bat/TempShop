@@ -10,7 +10,7 @@ export default function Login() {
   
   const { loading, error, isAuthenticated } = useSelector(state => state.auth);
   const [credentials, setCredentials] = useState({ 
-    username: "", 
+    email: "", 
     password: "" 
   });
 
@@ -36,22 +36,22 @@ export default function Login() {
     );
   }
 
+
+
   // Get the page user was trying to access (validate to prevent open redirect)
   const from = location.state?.from?.pathname;
   const redirectPath = from && from.startsWith('/') && !from.startsWith('//') ? from : "/profile";
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
     // Validate inputs
-    if (!credentials.username.trim() || !credentials.password.trim()) {
+    if (!credentials.email.trim() || !credentials.password.trim()) {
       return;
     }
-    
     try {
       const result = await dispatch(login(credentials)).unwrap();
-      // Check if email verification is needed
-      if (result.email_verified === false) {
+      // Check if email verification is needed (API returns is_email_verified)
+      if (result.is_email_verified === false) {
         navigate("/verify-otp", { replace: true });
       } else {
         navigate(redirectPath, { replace: true });
@@ -85,16 +85,16 @@ export default function Login() {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-gray-700 dark:text-gray-300 mb-2 font-medium">
-              Username
+              Email
             </label>
             <input
-              type="text"
-              name="username"
-              value={credentials.username}
+              type="email"
+              name="email"
+              value={credentials.email}
               onChange={handleChange}
               className="w-full px-4 py-3 border border-gray-300 dark:border-gray-700 rounded-lg dark:bg-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition"
               required
-              autoComplete="username"
+              autoComplete="email"
             />
           </div>
 
